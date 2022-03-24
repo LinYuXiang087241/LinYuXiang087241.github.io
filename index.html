@@ -155,6 +155,150 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/24/kernel%E5%B7%B2%E7%9F%A5bug%E6%B1%87%E6%80%BB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/mylove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/03/24/kernel%E5%B7%B2%E7%9F%A5bug%E6%B1%87%E6%80%BB/" class="post-title-link" itemprop="url">kernel已知bug汇总</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-03-24 21:27:07 / 修改时间：23:03:56" itemprop="dateCreated datePublished" datetime="2022-03-24T21:27:07+08:00">2022-03-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/bug/" itemprop="url" rel="index"><span itemprop="name">bug</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="RHEL-7"><a href="#RHEL-7" class="headerlink" title="RHEL 7"></a>RHEL 7</h1><ul>
+<li><ol>
+<li>kernel panic内容: <code>kernel BUG at fs/xfs/xfs_aops.c:1062!</code></li>
+</ol>
+<ul>
+<li>调查<br>通过检查 vmcore 即可发现<pre><code>[1004630.854317] kernel BUG at <font color=red>fs/xfs/xfs_aops.c:1062!</font> </code></pre></li>
+<li>修复<ul>
+<li>对于<code>RHEL 7</code>升级内核版本至<code>kernel-3.10.0-693.el7</code>及以上</li>
+<li>对于<code>RHEL 7.3</code>升级内核版本至<code>kernel-3.10.0-514.16.1.el7</code>及以上</li>
+<li>缓解办法： 如果客户机上 Java <code>JVM</code> 中使用<code>hsperf</code>功能，请<font color=red><strong>禁用</strong></font></li>
+</ul>
+</li>
+<li>参考文档<br><a target="_blank" rel="noopener" href="https://access.redhat.com/solutions/2779111"><font color=red><strong>RHEL7: kernel crash in xfs_vm_writepage - kernel BUG at fs&#x2F;xfs&#x2F;xfs_aops.c:1062!</strong></font></a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<ul>
+<li><ol start="2">
+<li>slub内存泄露<code>SLUB: Unable to allocate memory on node -1 (gfp=0x80d0)</code></li>
+</ol>
+<ul>
+<li>调查<br>检查<code>/var/log/messages</code>可以发现<pre><code>$ grep "Unable to allocate\|mock" var/log/messages
+kernel: SLUB: Unable to allocate memory on node -1 (gfp=0x80d0)
+kernel: SLUB: Unable to allocate memory on node -1 (gfp=0x80d0)
+kernel: SLUB: Unable to allocate memory on node -1 (gfp=0x80d0)</code></pre></li>
+<li>修复<ul>
+<li>对于<code>RHEL 7</code>升级内核版本至<code>kernel-3.10.0-1062.4.1.el7</code>及以上</li>
+<li>缓解办法：完全关闭内存“kernel memory accounting altogether”<br>在内核启动参数中添加以下参数<code>cgroup.memory=nokmem</code></li>
+</ul>
+</li>
+<li>参考文档<br><a target="_blank" rel="noopener" href="https://access.redhat.com/solutions/4088471"><font color=red><strong>SLUB: Unable to allocate memory on node -1 (gfp&#x3D;0x20)</strong></font></a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<ul>
+<li><ol start="3">
+<li>vmcore中检测到<code>mem_cgroup_css_offline</code>崩溃</li>
+</ol>
+<ul>
+<li>调查<br>调查vmcore<pre><code>[344254.090710] BUG: unable to handle kernel NULL pointer dereference at 00000000000000b8
+[344254.090865] IP: [<ffffffff811f375b>] <font color=red>mem_cgroup_css_offline+0xfb</font>/0x140   <<<
+... ...
+[344254.093838] RIP: 0010:[<ffffffff811f375b>]  [<ffffffff811f375b>] <font color=red>mem_cgroup_css_offline+0xfb</font>/0x140  <<< </code></pre></li>
+<li>修复<ul>
+<li>对于<code>RHEL 7.7</code>将内核版本升级至<code>kernel-3.10.0-1062.4.1.el7</code>及以上</li>
+<li>对于<code>RHEL 7.6</code>将内核版本升级至<code>kernel-3.10.0-957.38.1.el7</code>及以上</li>
+<li>对于<code>RHEL 7.5</code>将内核版本升级至<code>kernel-3.10.0-862.44.2.el7</code>及以上</li>
+<li>对于<code>RHEL 7.4</code>将内核版本升级至<code>kernel-3.10.0-693.61.1.el7</code>及以上</li>
+</ul>
+</li>
+<li>参考文档<br> <a target="_blank" rel="noopener" href="https://access.redhat.com/solutions/3291481"><font color=red><strong>Kernel panic with exception RIP: mem_cgroup_css_offline caused by a possible slab leak</strong></font></a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<ul>
+<li><ol start="4">
+<li>kernel bug: “kernel BUG at mm&#x2F;mmap.c:738!”</li>
+</ol>
+<ul>
+<li>调查<br>vmcore中显示：<pre><code>RELEASE: <font color=red>3.10.0-693.5.2.el7.x86_64</font>                 <--- 
+VERSION: #1 SMP Fri Oct 13 10:46:25 EDT 2017
+MACHINE: x86_64  (1995 Mhz)
+MEMORY: 511.8 GB
+PANIC: <font color=red>"kernel BUG at mm/mmap.c:738!"</font>              <---</code></pre></li>
+<li>修复<ul>
+<li>对于<code>RHEL 7</code>将内核版本升级至<code>kernel-3.10.0-957.el7</code>及以上</li>
+<li>对于<code>RHEL 7.5</code>将内核版本升级至<code>kernel-3.10.0-862.20.2.el7</code>及以上</li>
+<li>对于<code>RHEL 7.4</code>将内核版本升级至<code>kernel-3.10.0-693.46.1.el7</code>及以上</li>
+</ul>
+</li>
+<li>参考文档<br><a target="_blank" rel="noopener" href="https://access.redhat.com/solutions/3392791"><font color=red><strong>System unexpectedly reboots or panics with “kernel BUG at mm&#x2F;mmap.c:738”</strong></font></a></li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/24/%E6%90%AD%E5%BB%BAhexo%E5%8D%9A%E5%AE%A2/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
