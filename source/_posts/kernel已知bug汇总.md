@@ -64,3 +64,4 @@ PANIC: <font color=red>"kernel BUG at mm/mmap.c:738!"</font>              <---</
 	  - 对于`RHEL 7.4`将内核版本升级至`kernel-3.10.0-693.46.1.el7`及以上
   - 参考文档
     [<font color=red>**System unexpectedly reboots or panics with "kernel BUG at mm/mmap.c:738"**</font>](https://access.redhat.com/solutions/3392791)  
+	**<u><font color=red>仅用作经验记录</font></u>**

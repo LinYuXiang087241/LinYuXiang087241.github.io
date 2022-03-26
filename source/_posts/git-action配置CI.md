@@ -9,7 +9,7 @@ categories:
   - configuration
 ---
 
-# 通过配置`git_action`实现博客自动发布
+# 通过配置`git_action`实现`hexo`博客自动发布
 - 1 初始化博客，创建并切换 `gh-pages branch` 以及推送
   ```
 # git init
@@ -70,3 +70,4 @@ jobs:
   - 3.2 创建对应repo secret: `Settings` > `Secrets` > `Actions` > `New repository secret` secret的名称改为`ACCESS_TOKEN`，并粘贴token
         ![TWO](/images/3-26/2.png)  
 - 4. 每次推送至 gh-pages 分支自动发布
+**<u><font color=red>仅用作经验记录</font></u>**
