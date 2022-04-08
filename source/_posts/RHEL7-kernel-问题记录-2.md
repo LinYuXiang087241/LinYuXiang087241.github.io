@@ -38,3 +38,4 @@ lpfc_task_mgmt_tmo = 20
   - 参考文档，限制 SCSI 设备的路径故障转移时间
     [<font color=red>**Limiting path failover time for SCSI devices**</font>](https://access.redhat.com/solutions/627903)
 ---
+**<u><font color=red>仅用作经验记录</font></u>**
