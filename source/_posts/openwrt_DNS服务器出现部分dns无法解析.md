@@ -1,4 +1,4 @@
----
+﻿---
 title: openwrt DNS服务器出现部分dns无法解析
 date: 2022-04-11 21:35:55
 tags: 
@@ -9,6 +9,7 @@ categories:
 ---
 # openwrt做DNS服务器出现部分内网dns无法解析
 <html><pre><code>前提：使用cloudflare配置局域网解析，但是本地局域网内主机无法顺利解析</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 
 - 问题详述
@@ -21,4 +22,5 @@ categories:
 	    ![22-411-3](/images/22411/3.png)
 - 修复
   - 可能由于openwrt配置了重绑定保护，关闭即可
+    网络 > DHCP/DNS > 基本设置 > 重定向保护
     ![22-411-4](/images/22411/4.png)

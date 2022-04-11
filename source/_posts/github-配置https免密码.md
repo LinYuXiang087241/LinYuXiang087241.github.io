@@ -12,6 +12,7 @@ categories:
 ### 创建token参考 git-action配置CI 的博客
 <html><pre><code>前提：之前搭建hexo，配置了如何使用ssh免密推送。
 本文主要讲述如何配置https免密push到github。</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 
 - 前提：

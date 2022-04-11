@@ -11,6 +11,9 @@ categories:
 ---
 
 # 通过配置`git_action`实现`hexo`博客自动发布
+<html><pre><code>前提：配置完成hexo后，已经可以使用hexo d直接发布至github
+但是环境可能会随时变化，不可能为所有主机都配置nodejs环境，所以选择配置git action实现ci，并cd部署到master分支</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 - 1 初始化博客，创建并切换 `gh-pages branch` 以及推送
   ```

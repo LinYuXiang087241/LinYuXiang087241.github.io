@@ -8,6 +8,7 @@ categories:
 ---
 
 # win10搭建hexo博客
+**<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 ## 1. win安装node.js
 
