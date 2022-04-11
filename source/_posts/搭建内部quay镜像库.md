@@ -139,6 +139,27 @@ categories:
     ```
 	# podman login quay.linuxone.in
 	```
+
+- 10. 配置容器重启后依旧生效
+  - 10.1 podman自动生成service文件
+    ```
+	# podman generate systemd --new --files --name redis
+    # podman generate systemd --new --files --name postgresql-quay
+    # podman generate systemd --new --files --name quay
+	```
+  - 10.2 将service文件复制到指定目录
+    ```
+	# cp -Z container-redis.service /usr/lib/systemd/system
+    # cp -Z container-postgresql-quay.service /usr/lib/systemd/system
+    # cp -Z container-quay.service /usr/lib/systemd/system
+	```
+  - 10.3 使用`systemd`的方式进行管理
+    ```
+    # systemctl daemon-reload 
+    # systemctl enable --now container-redis.service
+    # systemctl enable --now container-postgresql-quay.service
+    # systemctl enable --now container-quay.service
+	```
 ---
 
 #### 一些遇到的小问题
