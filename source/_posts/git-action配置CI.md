@@ -3,6 +3,7 @@ layout: posts
 title: git_action配置CI
 date: 2022-03-25 23:49:57
 tags: 
+  - hexo
   - github
   - CI
 categories: 
