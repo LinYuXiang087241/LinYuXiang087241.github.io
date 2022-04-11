@@ -9,6 +9,7 @@ categories:
 ---
 
 # 重置vmware esxi6.5 root 密码
+<!-- more -->
 - 准备：
     - RHEL 7 启动U盘或ISO
 	- 服务器配置从U盘或ISO启动

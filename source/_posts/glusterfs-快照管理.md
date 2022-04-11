@@ -8,7 +8,8 @@ categories:
   - 分布式存储
 ---
 
-# 快照管理
+# glusterfs 快照管理
+<!-- more -->
 - 创建快照
   ```
   # gluster snapcreate create <snapname> <volume> no-timestamp

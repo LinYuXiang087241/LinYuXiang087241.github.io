@@ -8,7 +8,7 @@ categories:
 ---
 
 # 相同主机名注册失败
-
+<!-- more -->
 - 解决办法
   - 1. 注册时添加 --with-node-id
   - 2. 注册时添加 `K3S_NODE_NAME=`或 `--node-name` 

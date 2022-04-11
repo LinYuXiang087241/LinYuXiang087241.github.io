@@ -9,6 +9,7 @@ categories:
 ---
 
 # RHEL 7 kernel 问题记录-2
+<!-- more -->
 - 由于infiniband错误导致系统重启
   - 调查
     检查vmcore

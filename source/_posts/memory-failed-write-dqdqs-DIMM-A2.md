@@ -9,6 +9,7 @@ categories:
 ---
 
 # 服务器开机时报出 memeory failed错误，如下图
+<!-- more -->
 ![3-23-a](/images/3-23/3-23-a.jpg)
 
 - 原因：

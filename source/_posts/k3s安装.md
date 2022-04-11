@@ -9,6 +9,7 @@ categories:
 
 # 安装K3S
 docs.rancher.cn/docs/k3s/quick-start/_index
+<!-- more -->
 - 1. 脚本安装
   - 常用环境变量
     - `INSTALL_K3S_SKIP_DOWNLOAD`

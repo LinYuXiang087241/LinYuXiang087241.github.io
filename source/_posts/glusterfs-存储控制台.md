@@ -7,9 +7,8 @@ categories:
   - storage
   - 分布式存储
 ---
-
-
 # 安装红帽Gluster 存储控制台
+<!-- more -->
 - 需要开启的repo
   `jb-eap-7-for-rhel-7-server-rpms`
   `rhsc-3-for-rhel-7-server-rpms`

@@ -10,6 +10,7 @@ categories:
 ---
 
 # 通过配置`git_action`实现`hexo`博客自动发布
+<!-- more -->
 - 1 初始化博客，创建并切换 `gh-pages branch` 以及推送
   ```
 # git init

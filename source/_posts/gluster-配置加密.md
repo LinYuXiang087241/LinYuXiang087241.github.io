@@ -7,7 +7,9 @@ categories:
   - storage
   - 分布式存储
 ---
-# 配置glusterfs的加密
+# 配置glusterfs加密
+
+<!-- more -->
 - 配置文件
   - /etc/ssl/glusterfs.pem
   - /etc/ssl/glusterfs.key

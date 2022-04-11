@@ -9,6 +9,7 @@ categories:
 ---
 
 # glusterfs 卷分层
+<!-- more -->
 ---
 #### 管理分层卷
 - 1. 创建分层卷

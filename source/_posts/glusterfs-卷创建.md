@@ -9,6 +9,7 @@ categories:
 ---
 
 # gluster 安装所需开启repo
+<!-- more -->
 - 服务端
   rhel-7-server-rpms
   rh-gluster-3-for-rhel-7-server-rpms

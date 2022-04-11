@@ -8,7 +8,8 @@ categories:
   - bug
 ---
 
-# RHEL 8
+# RHEL 8 内核问题记录
+<!-- more -->
 - 1. kernel崩溃位于`n_tty_receive_buf_common()`
   - 调查
     检查vmcore
@@ -20,7 +21,7 @@ categories:
   - 参考文档
     [<font color=red>**Kernel panics in the n_tty_receive_buf_common() routine**</font>](https://access.redhat.com/solutions/5697911)
 ---
-<!-- more -->
+
 
 - 2. kernel崩溃由于`list_del`位于`LIST_POISON2`腐败
   - 调查

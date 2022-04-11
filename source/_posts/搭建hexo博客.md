@@ -8,7 +8,7 @@ categories:
 ---
 
 # win10搭建hexo博客
-
+<!-- more -->
 ## 1. win安装node.js
 
 - 1.1 下载到本地并双击安装：https://nodejs.org/en/download/

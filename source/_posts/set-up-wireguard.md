@@ -9,7 +9,7 @@ categories:
 ---
 
 # 在centos7配置wireguard
-
+<!-- more -->
 ## wireguard 服务端配置
 - 1. 下载必要软件包
 ```

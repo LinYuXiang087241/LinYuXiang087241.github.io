@@ -9,6 +9,7 @@ categories:
 ---
 
 # RHEL 7 kernel 问题记录-1
+<!-- more -->
 - 1. kernel panic内容: `kernel BUG at fs/xfs/xfs_aops.c:1062!`
   - 调查
     通过检查 vmcore 即可发现

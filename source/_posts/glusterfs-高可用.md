@@ -9,6 +9,7 @@ categories:
 ---
 
 # gluster高可用配置
+<!-- more -->
 ---
 ### gluster samba CTDB以启用Samba卷自动IP切换
 - 1. 安装samba 和 ctdb 相关软件包

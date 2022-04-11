@@ -9,6 +9,7 @@ categories:
 ---
 
 # glusterfs 扩展卷
+<!-- more -->
 ### 扩大卷
 - 如果扩展副本设置为2的卷，必须以2的倍数添加brick
 - 扩大步骤

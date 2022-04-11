@@ -9,6 +9,7 @@ categories:
 ---
 
 # 使用非特权账户配置异地复制
+<!-- more -->
 - 异地节点配置
   - 前提，已经配置有gluster volume copyvol
   - 1. 配置账户
