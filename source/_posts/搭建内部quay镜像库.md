@@ -10,6 +10,7 @@ categories:
 ---
 
 # 搭建内部quay镜像库
+![22-411-17](/images/22411/17.png)
 <html><pre><code>前提：部署https内部quay镜像仓库
 由于内网quay主机配置不够，将不会配置镜像扫描服务</code></pre></html>
 **<u><font color=red>仅用作经验记录</font></u>**
