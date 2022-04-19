@@ -12,7 +12,7 @@ categories:
 # 搭建内部quay镜像库
 ![22-411-17](/images/22411/17.png)
 <html><pre><code>前提：部署https内部quay镜像仓库
-由于内网quay主机配置不够，将不会配置镜像扫描服务</code></pre></html>
+由于内网quay主机配置不够，仅提供配置步骤，不会保留该服务</code></pre></html>
 **<u><font color=red>仅用作经验记录</font></u>**
 
 <!-- more -->
@@ -144,15 +144,15 @@ categories:
 - 10. 配置容器重启后依旧生效
   - 10.1 podman自动生成service文件
     ```
-	# podman generate systemd --new --files --name redis
-    # podman generate systemd --new --files --name postgresql-quay
-    # podman generate systemd --new --files --name quay
+# podman generate systemd --new --files --name redis
+# podman generate systemd --new --files --name postgresql-quay
+# podman generate systemd --new --files --name quay
 	```
   - 10.2 将service文件复制到指定目录
     ```
-	# cp -Z container-redis.service /usr/lib/systemd/system
-    # cp -Z container-postgresql-quay.service /usr/lib/systemd/system
-    # cp -Z container-quay.service /usr/lib/systemd/system
+# cp -Z container-redis.service /usr/lib/systemd/system
+# cp -Z container-postgresql-quay.service /usr/lib/systemd/system
+# cp -Z container-quay.service /usr/lib/systemd/system
 	```
   - 10.3 使用`systemd`的方式进行管理
     ```
@@ -161,6 +161,97 @@ categories:
     # systemctl enable --now container-postgresql-quay.service
     # systemctl enable --now container-quay.service
 	```
+	
+- 11. 配置容器镜像漏洞扫描服务`Clair`
+  - 11.1 创建`Clair`容器所需的目录
+    ```
+	# mkdir -p $QUAY/postgres-clairv4/
+	```
+  - 11.2 启动 `Clair` 所需单独使用的 postgresql 数据库
+    ```
+	# podman run -d --rm --name postgresql-clairv4   -e POSTGRESQL_USER=clairuser   -e POSTGRESQL_PASSWORD=clairpass   -e POSTGRESQL_DATABASE=clair   -e POSTGRESQL_ADMIN_PASSWORD=adminpass   -p 5433:5432   -v $QUAY/postgres-clairv4:/var/lib/pgsql/data:Z   registry.redhat.io/rhel8/postgresql-10:1
+	```
+  - 11.3 为`postgresql` 添加 `Clair` 所需的数据库
+    ```
+	# podman exec -it postgresql-clairv4 /bin/bash -c 'echo "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"" | psql -d clair -U postgres'
+	```
+  - 11.4 启动 quay 配置容器，额外进行以下配置
+    ```
+	# podman run --rm -it --name quay_config   -p 80:8080 -p 443:8443   -v $QUAY/config:/conf/stack:Z   registry.redhat.io/quay/quay-rhel8:v3.6.4 config secret
+	```
+    在配置页面进行以下配置并保存配置文件 `quay-confg.tar.gz`
+	![22-411-18](/images/22411/18.png)
+  - 将对应配置解压到`$QUAY/config`目录，然后配置 `Clair` 配置文件
+    ```
+# cat /etc/clairv4/config/config.yaml
+http_listen_addr: :8081
+introspection_addr: :8089
+log_level: debug
+indexer:
+  connstring: host=quay.linuxone.in port=5433 dbname=clair user=clairuser password=clairpass sslmode=disable   <<<
+  scanlock_retry: 10
+  layer_scan_concurrency: 5
+  migrations: true
+matcher:
+  connstring: host=quay.linuxone.in port=5433 dbname=clair user=clairuser password=clairpass sslmode=disable   <<<
+  max_conn_pool: 100
+  run: ""
+  migrations: true
+  indexer_addr: clair-indexer
+notifier:
+  connstring: host=quay.linuxone.in port=5433 dbname=clair user=clairuser password=clairpass sslmode=disable   <<<
+  delivery_interval: 1m
+  poll_interval: 5m
+  migrations: true
+auth:
+  psk:
+    key: "aDFiMmY2ajk4NjI1OQ=="   <<<
+    iss: ["quay"]
+# tracing and metrics
+trace:
+  name: "jaeger"
+  probability: 1
+  jaeger:
+    agent_endpoint: "localhost:6831"
+    service_name: "clair"
+metrics:
+  name: "prometheus"
+	```
+
+  - 11.5 启动`Clair` 容器
+    ```
+	# podman run -d --rm --name clairv4   -p 8081:8081 -p 8089:8089   -e CLAIR_CONF=/clair/config.yaml -e CLAIR_MODE=combo   -v /etc/clairv4/config:/clair:Z   registry.redhat.io/quay/clair-rhel8:v3.6.4
+	```
+  - 11.6 然后启动 quay 容器
+  - 11.7 由于 quay 容器依赖与`Clair`容器启动后启动，进行以下配置
+    ```
+# cat /usr/lib/systemd/system/container-quay.service
+[Unit]
+Description=Podman container-quay.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=container-clairv4.service   <<<
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+RestartSec=30
+ExecStartPre=/bin/rm -f %t/container-quay.pid %t/container-quay.ctr-id
+ExecStart=/usr/bin/podman run --conmon-pidfile %t/container-quay.pid --cidfile %t/container-quay.ctr-id --cgroups=no-conmon -d --rm -p 8080:8080 --name=quay -v /home/user1/quay/config:/conf/stack:Z -v /home/user1/quay/storage:/datastorage:Z registry.redhat.io/quay/quay-rhel8:v3.4.0
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/container-quay.ctr-id -t 10
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/container-quay.ctr-id
+PIDFile=%t/container-quay.pid
+KillMode=none
+Type=forking
+
+[Install]
+WantedBy=multi-user.target default.target
+	```
+
+  -  11.8 关闭漏洞扫描的原因为，当前主机为我自己家用nas 4核心，开启漏洞扫描后负载为：
+     ![22-411-18](/images/22411/19.png)
+	 根本负担不起，所以就不开启此服务了。
+
 ---
 
 #### 一些遇到的小问题
@@ -182,3 +273,8 @@ unqualified-search-registries = ["registry.fedoraproject.org", "registry.access.
 <font color=red>[[registry]]
 prefix = "docker.io"
 location = "xacs4bss.mirror.aliyuncs.com"</font> </code></pre></html>
+
+4. 本地配置https本地镜像库的证书
+将ca证书复制到以下以镜像库`url`命令的目录，如果不存在，则创建
+
+<html><pre><code># cp /etc/crts/cert.ca.crt /etc/containers/certs.d/<font color=red>quay.linuxone.in</font>/cert.ca.crt</code></pre></html>

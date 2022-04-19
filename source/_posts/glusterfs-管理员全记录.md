@@ -1,5 +1,5 @@
 ﻿---
-title: glusterfs-学习记录 一
+title: glusterfs-学习记录 <font color=blue>一</font>
 date: 2022-04-12 23:45:03
 tags:
   - gluster
@@ -7,15 +7,17 @@ categories:
   - storage
   - 分布式存储
 ---
-# glusterfs 学习记录 <font color=blue>一</font>
+
+<h2>glusterfs 学习记录 <font color=blue>一</font></h2>
+
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5
-本文主要内容：安装，启用web console，客户端配置</code></pre></html>
+本文主要内容：安装/启用web console，客户端配置</code></pre></html>
 **<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 ---
 
-## 环境介绍
+##  环境介绍
 - glusterfs 集群环境如下
    | 主机名 | IP | 角色 |
    |--- | --- | --- |
@@ -29,7 +31,7 @@ categories:
    
 ---
 
-### 安装 glusterfs
+##  安装 glusterfs
 - 前提
   - rhel 6 开启的repo
     ```
@@ -66,7 +68,7 @@ categories:
    
 ---
    
-### 创建加密集群
+##  创建加密集群
 - 1.1 server`a` / `b` / `c` / `d` / `e` / `client` 节点创建自签名证书
   - 进入对应目录
     ```
@@ -145,7 +147,7 @@ categories:
 
 ---
 
-### 安装 web console
+##  安装 web console
 - 前提
   - gluster web console 节点开启以下软件包频道
     ```
@@ -212,7 +214,7 @@ categories:
 	
 ---
 
-### web console 开启卷分析
+##  web console 开启卷分析
 - 前提
   - 创建 `lvm` ，挂载并启动卷
     ```
@@ -239,11 +241,103 @@ categories:
 
 ---
 
-### web console 扩大集群
+##  web console 扩展集群增加节点
+
+- 前提
+  - 1. 节点已经配置完成
+  - 2. 节点已经配置证书`glusterfs.ca` / `glusterfs.key` / `glusterfs.pem`
+  - 3. 配置管理节点至扩展节点 ssh 免密码登录
+- 通过 web console 扩展步骤
+  - 1. 添加扩展节点至`inventory`
+    ```
+	# cat invntory 
+	[gluster_servers]
+	servera.glusterfs.linuxone.in
+	serverb.glusterfs.linuxone.in
+	serverc.glusterfs.linuxone.in
+	serverd.glusterfs.linuxone.in
+	servere.glusterfs.linuxone.in   <<<
+	```
+  - 2. 运行play book
+    ```
+	# ansible-playbook -i invntory site.yml
+	```
+
+  - 3. web console 进行扩展
+    - 3.1 点击 expend
+      ![22-412-g6](/images/22412/g6.png)   
+	- 3.2 点击 expand
+	  ![22-412-g7](/images/22412/g7.png)   
 
 ---
 
-### 配置客户端
+##  web console 取消管理集群
+- 前提
+  集群已经被 web console 管理
+  
+- web console 中点击 unmanage
+  ![22-412-g8](/images/22412/g8.png)   
+
+---
+
+##  监控信息保存配置
+
+- 1. 取消管理集群
+- 2. 停止 `carbon-cache` 服务
+  ```
+  # systemctl stop carbon-cache
+  ```
+- 3. 修改配置文件:
+  ```
+  # vim /etc/tendrl/monitoring-integration/storage-schemas.conf
+  [tendrl]
+  pattern = ^tendrl\.
+  retentions = 60:180d  <<<
+  ```
+  `60`为数据点
+  `180d`为保存天数，数据点相加最多180天的数据
+- 4. 重启 `carbon-cache` 服务
+  ```
+  # systemctl start carbon-cache
+  ```
+---
+
+##  web 管理的日志等级
+- 管理组件
+  - web 管理组件
+    - tendrl-monitoring-integration
+	- tendrl-notifier
+  - storage 节点管理组件
+    - tendrl-gluster-intergration
+
+- 日志等级
+  - DEBUG
+  - INFO
+  - WARNING
+  - ERROR(DEFAULT)
+  - CRITICAL
+
+- 修改日志等级
+  - 配置文件 `/etc/tendrl/node-agent/node-agent_logging.yaml`  
+	<html><pre><code># vim /etc/tendrl/node-agent/node-agent_logging.yaml
+	handlers:
+    console:
+        class: logging.StreamHandler
+        level: ERROR
+        stream: ext://sys.stdout
+
+    info_file_handler:
+        class: logging.handlers.SysLogHandler
+        facility: local5
+        address: /dev/log
+        level: ERROR
+	root:
+        level: ERROR
+        handlers: [console, info_file_handler]</code></pre></html>
+
+---
+
+## 配置客户端
 - 前提
   - RHEL 6
     ```
