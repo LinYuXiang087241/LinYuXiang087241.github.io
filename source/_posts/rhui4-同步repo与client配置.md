@@ -2,7 +2,6 @@
 title: rhui4-同步repo与client配置
 date: 2022-04-20 16:34:07
 tags:
-tags:
   - RHUI4
 categories:
   - usage
