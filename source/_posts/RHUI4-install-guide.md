@@ -24,7 +24,9 @@ categories:
    | cds2.linuxone.in | 192.168.31.104 | cds |
    | haproxy.linuxone.in | 192.168.31.105 | haproxy |
    | quay.linuxone.in | 192.168.31.250 | nfs | 
-   
+ 
+## 前提
+- 所有主机防火墙必须正确配置，必须正确配置，必须正确配置。
 
 ## 配置 RHUA 主机
 - 1. 附加正确订阅
@@ -97,6 +99,15 @@ categories:
     - 3 处填写 rhua 到该节点ssh 免密登录的加密私钥所在位置	
     配置完成，成功结果如下：
 	![22-418-6](/images/22418/6.png)
+  - 5.1 检查当前节点是否已经加入rhui集群
+    - 5.1.1 通过 df -h 命令检查nfs共享存储是否已经挂载
+	  ![22-418-9](/images/22418/9.png)
+	- 5.1.2 检查`rhui-tools.conf`是否存在
+	  ```
+# ls /etc/rhui/
+rhui-tools.conf
+      ```
+
 - 6. 添加`haproxy`节点
   - h > a 步骤参考 `5`
     配置完成，结果如下：
