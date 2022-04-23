@@ -10,10 +10,9 @@ categories:
 
 <h2>glusterfs 学习记录 <font color=green>二</font></h2>
 
+![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5
 本文主要内容：使用 <font color=red>gdeploy 2</font> 管理 gluster 集群 </code></pre></html>
-
-![22-417-g21](/images/22417/g21.png)
 
 **<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->

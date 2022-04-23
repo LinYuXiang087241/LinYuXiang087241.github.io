@@ -8,7 +8,7 @@ categories:
   - 分布式存储
 ---
 
-<h2>glusterfs 学习记录 <font color=blue>一</font></h2>
+<h2>glusterfs 学习记录 <font color=red>一</font></h2>
 
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5

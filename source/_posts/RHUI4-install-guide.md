@@ -27,6 +27,15 @@ categories:
  
 ## 前提
 - 所有主机防火墙必须正确配置，必须正确配置，必须正确配置。
+  ```
+# firewall-cmd --add-port=22/tcp --permanent 
+# firewall-cmd --add-port=443/tcp --permanent 
+# firewall-cmd --add-port=2049/tcp --permanent 
+# firewall-cmd --add-port=22/tcp --permanent
+# firewall-cmd --add-port=443/tcp --permanent
+# firewall-cmd --add-port=2049/tcp --permanent
+# firewall-cmd --reload
+  ```
 
 ## 配置 RHUA 主机
 - 1. 附加正确订阅
