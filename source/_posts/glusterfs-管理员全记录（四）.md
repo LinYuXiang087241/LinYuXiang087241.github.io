@@ -1,5 +1,5 @@
 ---
-title: glusterfs-管理员全记录（四）
+title: glusterfs-管理员全记录：<font color=yellow>四</font>
 date: 2022-04-23 18:19:55
 tags:
   - gluster
@@ -8,11 +8,9 @@ categories:
   - 分布式存储
 ---
 
-<h3>glusterfs 学习记录 <font color=yellow>四</font></h3>
-
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5
-本文主要内容：client端管理</code></pre></html>
+本文主要内容：client端管理，nfs-ganesha 共享存储，smb-ctdb 共享存储</code></pre></html>
 **<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 

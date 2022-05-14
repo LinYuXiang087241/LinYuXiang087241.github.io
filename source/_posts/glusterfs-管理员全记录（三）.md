@@ -1,5 +1,5 @@
 ---
-title: glusterfs-管理员全记录（三）
+title: glusterfs-管理员全记录：<font color=blue>三</font>
 date: 2022-04-21 22:22:58
 tags:
   - gluster
@@ -7,8 +7,6 @@ categories:
   - storage
   - 分布式存储
 ---
-
-<h2>glusterfs 学习记录 <font color=blue>三</font></h2>
 
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5

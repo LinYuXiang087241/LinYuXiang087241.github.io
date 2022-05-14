@@ -1,5 +1,5 @@
 ﻿---
-title: glusterfs-学习记录 <font color=blue>一</font>
+title: glusterfs-管理员全记录：<font color=red>一</font>
 date: 2022-04-12 23:45:03
 tags:
   - gluster
@@ -7,8 +7,6 @@ categories:
   - storage
   - 分布式存储
 ---
-
-<h2>glusterfs 学习记录 <font color=red>一</font></h2>
 
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5
@@ -29,6 +27,12 @@ categories:
    | manager.glusterfs.linuxone.in | 192.168.31.109 | 管理/监控 |
    | client.glusterfs.linuxone.in  | 192.168.31.108 | client | 
    
+---
+
+## glusterfs  红帽官方 Master Article
+Red Hat Gluster Storage Troubleshooting and Recommended Configurations (Master Article)
+https://access.redhat.com/solutions/2451341
+
 ---
 
 ##  安装 glusterfs

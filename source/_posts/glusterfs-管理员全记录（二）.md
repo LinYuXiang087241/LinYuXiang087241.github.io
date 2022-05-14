@@ -1,5 +1,5 @@
 ---
-title: gluster-学习记录 <font color=green>二</font>
+title: glusterfs-管理员全记录：<font color=green>二</font>
 date: 2022-04-17 11:53:46
 tags:
   - gluster
@@ -7,8 +7,6 @@ categories:
   - storage
   - 分布式存储
 ---
-
-<h2>glusterfs 学习记录 <font color=green>二</font></h2>
 
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5
@@ -354,7 +352,7 @@ nodes=
 
 ---
 
-## 配置 `samba` /` CTDB` 
+## 使用<font color=green> gdeploy </font>配置 `samba` /` CTDB` 
 
 - 前提
   - rhel 7 开启以下软件包频道
