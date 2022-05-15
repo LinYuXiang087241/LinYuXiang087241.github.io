@@ -10,7 +10,7 @@ categories:
 
 ![22-412-g1](/images/22412/g1.png)
 <html><pre><code>前提：基于红帽商业版glusterfs 3.5
-本文主要内容：卷管理</code></pre></html>
+本文主要内容：分别创建不同种类的卷</code></pre></html>
 **<u><font color=red>仅用作经验记录</font></u>**
 <!-- more -->
 
