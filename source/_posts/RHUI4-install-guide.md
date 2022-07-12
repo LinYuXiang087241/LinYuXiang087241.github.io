@@ -39,6 +39,9 @@ categories:
 
 ## 配置 RHUA 主机
 - 1. 附加正确订阅
+  ```
+  # subscription-manager register --type=rhui --username <admin-example> --password <secret>
+  ```
 - 2. 开启以下软件包频道
   ```
   # subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rhui-rpms --enable=rhel-8-for-x86_64-appstream-rhui-rpms --enable=ansible-2-for-rhel-8-x86_64-rhui-rpms --enable=rhui-4-for-rhel-8-x86_64-rpms
