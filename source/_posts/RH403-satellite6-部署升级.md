@@ -455,13 +455,14 @@ yum install -y katello-agent katello-host-tools-tracer
 	
 - capsule 6.10 > 6.11
   - 1. satellite 同步并开启以下 repo
-    ```
+```
 rhel-7-server-ansible-2.9-rpms
 rhel-7-server-rpms/7Server
 rhel-7-server-satellite-capsule-6.11-rpms
 rhel-7-server-satellite-maintenance-6.11-rpms
 rhel-server-rhscl-7-rpms
-	```  
+```
+
   - 2. satellite 重新为 capsule 创建 cert 文件
     ```
 # capsule-certs-generate --foreman-proxy-fqdn "capsule.linuxone.in" --certs-update-all --certs-tar "~/capsule.linuxone.in-certs.tar"
@@ -536,14 +537,14 @@ rhel-server-rhscl-7-rpms
 	```
 - capsule 6.11 RHEL7 升级 RHEL8  
   - 1. satellite 同步以下 repo 
-    ```
+```
 satellite-capsule-6.11-for-rhel-8-x86_64-rpms 
 satellite-maintenance-6.11-for-rhel-8-x86_64-rpms
 ansible-2.9-for-rhel-8-x86_64-rpms
 baseos 8.6
 appstream 8.6
 ha 8.6
-	```  
+```
   - 2. 开启以下 repo 
     ```
 # subscription-manager repos --enable=rhel-7-server-extras-rpms

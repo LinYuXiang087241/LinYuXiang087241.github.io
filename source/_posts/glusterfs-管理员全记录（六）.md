@@ -248,17 +248,17 @@ gluster volume bitrot VOLNAME scrub-frequency frequency
 # gluster volume profile VOLNAME start 
   ``` 
   - 1.2 显示信息
-  ```
+```
 # gluster volume profile VOLNAME info 
-  ```  
+``` 
   - 1.3 停止卷分析
-  ```
+```
 # gluster volume profile VOLNAME stop
-  ```  
+``` 
   - 1.4 显示挂载点的所有信息
-  ```
+```
 # setfattr -ntrusted.io-stats-dump -v output_file_id  mount_point
-  ```  
+``` 
 	
 ---
 
