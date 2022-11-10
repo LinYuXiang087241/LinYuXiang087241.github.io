@@ -2,7 +2,7 @@
 title: cl260-离线部署ceph5
 date: 2022-08-12 23:25:36
 tags:
-  - CL260_ceph5
+  - CL260_ceph
 categories:
   - installation
 ---
@@ -254,6 +254,24 @@ ceph: # ceph health detail
 # ansible-playbook -i hosts cephadm-purge-cluster.yml -e fsid=a6ca415a-cde7-11eb-a41a-002590fc2544 -vvv
 ```
    
+---
+
+## 在线部署注意事项
+- 1. 每个节点配置 registry.redhat.io 的验证文件
+```
+# cat /etc/podman.json 
+{
+ "url":"registry.redhat.io",
+ "username":"username",
+ "password":"password"
+}
+```
+- 2. 使用 bootstrap 点火集群时，使用以下命令
+```
+# cephadm bootstrap --mon-ip=192.168.31.50 \
+--initial-dashboard-password=redhat --dashboard-password-noupdate \
+ --allow-fqdn-hostname --registry-json /etc/podman.json --yes-i-know
+```
    
    
    
