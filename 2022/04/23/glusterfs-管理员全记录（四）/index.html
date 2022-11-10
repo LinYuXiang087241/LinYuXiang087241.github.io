@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：client端管理，nfs-ganesha 共享存储，smb-ctdb 共享存储 **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="glusterfs-管理员全记录：&lt;font color&#x3D;yellow&gt;四&lt;&#x2F;font&gt;">
+<meta property="og:url" content="http://example.com/2022/04/23/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%9B%9B%EF%BC%89/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：client端管理，nfs-ganesha 共享存储，smb-ctdb 共享存储 **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22412/g1.png">
+<meta property="og:image" content="http://example.com/images/22423/6.png">
+<meta property="og:image" content="http://example.com/images/22423/5.png">
+<meta property="article:published_time" content="2022-04-23T18:19:55.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="gluster">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22412/g1.png">
+
+<link rel="canonical" href="http://example.com/2022/04/23/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%9B%9B%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>glusterfs-管理员全记录：<font color=yellow>四</font> | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/23/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%9B%9B%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          glusterfs-管理员全记录：<font color=yellow>四</font>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-23 18:19:55" itemprop="dateCreated datePublished" datetime="2022-04-23T18:19:55+00:00">2022-04-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/" itemprop="url" rel="index"><span itemprop="name">storage</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8/" itemprop="url" rel="index"><span itemprop="name">分布式存储</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22412/g1.png" alt="22-412-g1"></p>
+<html><pre><code>前提：基于红帽商业版glusterfs 3.5
+本文主要内容：client端管理，nfs-ganesha 共享存储，smb-ctdb 共享存储</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+
+<hr>
+<h3 id="原生客户端升级"><a href="#原生客户端升级" class="headerlink" title="原生客户端升级"></a>原生客户端升级</h3><ul>
+<li>不同版本的repo<ul>
+<li>rhel6<ul>
+<li>rhel-6-server-rpms </li>
+<li>rhel-6-server-rhs-client-1-rpms</li>
+</ul>
+</li>
+<li>rhel7<ul>
+<li>rhel-7-server-rpms</li>
+<li>rh-gluster-3-client-for-rhel-7-server-rpms</li>
+</ul>
+</li>
+<li>rhel8<ul>
+<li>rh-gluster-3-client-for-rhel-8-x86_64-rpms</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>升级前提请 umount  gluster 挂载点</li>
+<li>升级 glusterfs 客户端<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum update glusterfs glusterfs-fuse</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h3 id="原生客户端glusterfs-常用挂载选项"><a href="#原生客户端glusterfs-常用挂载选项" class="headerlink" title="原生客户端glusterfs 常用挂载选项"></a>原生客户端glusterfs 常用挂载选项</h3><ul>
+<li><p><code>backup-volfile-servers=serverb:serverc:serverd</code><br>备用的卷服务器列表，当主服务器出现故障时，会依次尝试从所有备用服务器进行挂载</p>
+</li>
+<li><p><code>log-level</code><br>配置日志等级</p>
+</li>
+<li><p><code>log-file</code><br>日志存储的位置</p>
+</li>
+<li><p><code>transport-type</code><br>客户端传输类型，默认是 tcp </p>
+</li>
+<li><p><code>dump-fuse</code><br>配置glusterfs客户端生成dump文件</p>
+</li>
+<li><p><code>ro</code><br>只读</p>
+</li>
+<li><p><code>background-qlen=n</code><br>客户端n个请求后的请求将会被拒绝。</p>
+</li>
+<li><p><code>enable-ino32</code><br>启用使文件系统展示32位inode 而不是64位</p>
+</li>
+<li><p><code>reader-thread-count=n</code><br>添加 n 个读取线程，从而提供更好io性能，默认为1</p>
+</li>
+<li><p><code>lru-limit</code><br>在到达 inode 限制后，此mount会从最近最少使用 lru 列表中清除 inode</p>
+</li>
+<li><p><code>acl</code><br>启用 posix 访问控制列表，可配置acl权限</p>
+</li>
+<li><p>挂载原生客户端，除mount命令外，可以配置 <code>fstab</code> 文件:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">servera:/testvol /test glusterfs defaults 0 0</span><br></pre></td></tr></table></figure>
+<ul>
+<li>如果是子目录，则<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">servera:/testvol/subdir /test glusterfs defaults 0 0</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="NFS-配置-CTDB"><a href="#NFS-配置-CTDB" class="headerlink" title="NFS 配置 CTDB"></a>NFS 配置 CTDB</h3><ul>
+<li><ol>
+<li>Gluster NFS</li>
+</ol>
+<ul>
+<li><p>1.1 gluster 卷开启 nfs 功能</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol nfs.disable off</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>1.2 配置 nfs 被指定网段访问</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol nfs.rpc-auth-allow &#x27;172.25.250.*&#x27;</span><br></pre></td></tr></table></figure></li>
+<li><p>1.3 配置 nfs acl 权限</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol nfs.acl on</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="2">
+<li>为 Gluster NFS 配置 CTDB</li>
+</ol>
+<ul>
+<li>2.1 为所有 NFS 服务器的节点安装 CTDB<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install CTDB</span><br></pre></td></tr></table></figure></li>
+<li>2.2 修改配置文件（针对rhel7） 并重启nfs服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># sed -i &#x27;/STATD_PORT/s/^#//&#x27; /etc/sysconfig/nfs</span><br><span class="line"># systecmctl restart nfs-config</span><br><span class="line"># systecmctl restart rpc-statd</span><br><span class="line"># systecmctl restart nfs-mountd</span><br><span class="line"># systecmctl restart nfslock</span><br></pre></td></tr></table></figure></li>
+<li>2.3 配置 CTDB<ul>
+<li><p>2.3.0 为ctdb单独配置卷</p>
+</li>
+<li><p>2.3.1 配置以下文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/glusterd/hooks/1/start/post/S29CTDBsetup.sh</span><br><span class="line">/var/lib/glusterd/hooks/1/stop/pre/S29CTDB-teardown.sh	   </span><br></pre></td></tr></table></figure></li>
+<li><p>2.3.2 将 META&#x3D;’all’ 替换为ctdb卷名 META&#x3D;’ctdb’</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># sed -i &#x27;s/META=&quot;all&quot;/META=&quot;ctdb&quot;/g&#x27; /var/lib/glusterd/hooks/1/start/post/S29CTDBsetup.sh</span><br></pre></td></tr></table></figure></li>
+<li><p>2.3.3 启动CTDB 卷</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume start ctdb	</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>2.3.4 检查配置文件是否存在</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/sysconfig/ctdb</span><br></pre></td></tr></table></figure></li>
+<li><p>2.3.5 添加节点ip至所有节点配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/ctdb/nodes</span><br><span class="line">192.168.31.110</span><br><span class="line">192.168.31.111</span><br><span class="line">192.168.31.112</span><br></pre></td></tr></table></figure></li>
+<li><p>2.3.6 配置所有节点需您ip用于故障迁移</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/ctdb/public_addresses</span><br><span class="line">192.168.31.32/24 ens33</span><br><span class="line">192.168.31.33/24 ens33</span><br></pre></td></tr></table></figure></li>
+<li><p>2.4 gluster nfs 的ctdb仅提供节点级别高可用，无法检测NFS故障，如果NFS服务的节点仍处于运行状态，则不会提供高可用</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="3">
+<li>客户端挂载，仅支持 v3</li>
+</ol>
+<ul>
+<li>3.1 命令行挂载<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mount -t nfs -o vers=3 servera:/ctdb xxx/</span><br></pre></td></tr></table></figure></li>
+<li>3.2 开机自动挂载<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/fstab</span><br><span class="line">servera:/ctdb /mnt/xxx nfs defaults,_netdev 0 0</span><br></pre></td></tr></table></figure></li>
+<li>3.3 对nfs精细控制<ul>
+<li><code>nfs.export-dirs</code><br>默认开启，允许客户端在nfs卷创建子目录，提供nfs服务时可以无需指定子目录</li>
+<li><code>nfs.export-dir</code><br>若配置为<code>on</code>，允许您指定一个或多个导出子目录，参考如下命令<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster set ctdb volume nfs.export-dir /dir1,/dir2(192.168.31.0/24)</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="NFS-Ganesha"><a href="#NFS-Ganesha" class="headerlink" title="NFS Ganesha"></a>NFS Ganesha</h3><ul>
+<li><ol>
+<li>准备工作(rhel 7)</li>
+</ol>
+<ul>
+<li>1 配置 NFS Ganesha<ul>
+<li>1.1 安装并配置修改以下内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># yum install glusterfs-ganesha -y</span><br><span class="line"># sed -i &#x27;/STATD_PORT/s/^#//&#x27; /etc/sysconfig/nfs</span><br><span class="line"># systemctl restart nfs-config</span><br><span class="line"># systemctl restart rpc-statd</span><br><span class="line"># sed -i &#x27;/STATD_PORT/s/^#//&#x27; /etc/sysconfig/nfs</span><br><span class="line"># sed -i &#x27;/LOCKD_TCPPORT/s/^#//&#x27; /etc/sysconfig/nfs</span><br><span class="line"># sed -i &#x27;/LOCKD_UDPPORT/s/^#//&#x27; /etc/sysconfig/nfs</span><br><span class="line"># systemctl restart nfs-config</span><br><span class="line"># systemctl restart rpc-statd</span><br><span class="line"># systemctl restart nfslock</span><br></pre></td></tr></table></figure>
+NFS-Ganesha 支持最小节点数为3，最大节点是8</li>
+<li>1.2 禁用 kernel-nfs<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># systemctl stop nfs-server</span><br><span class="line"># systemctl disable nfs-server</span><br></pre></td></tr></table></figure></li>
+<li>1.3 开启全局共享存储<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set all cluster.enable-shared-storage enable</span><br></pre></td></tr></table></figure></li>
+<li>1.4 修改配置文件 <code>ganesha-ha.conf</code><pre><code>HA_NAME="ganesha-ha-360"
+HA_CLUSTER_NODES="servera.glusterfs.linuxone.in,serverb.glusterfs.linuxone.in,serverc.glusterfs.linuxone.in"
+VIP_servera_glusterfs_linuxone_in="192.168.31.114"
+VIP_serverb_glusterfs_linuxone_in="192.168.31.100"
+VIP_serverc_glusterfs_linuxone_in="192.168.31.99"</code></pre></li>
+<li>1.5 将配置文件 <code>ganesha.conf</code> &amp; <code>ganesha-ha.conf</code> 复制到目标目录<code>/var/run/gluster/shared_storage/nfs-ganesha</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># mkdir /var/run/gluster/shared_storage/nfs-ganesha</span><br><span class="line"># cp /etc/ganesha/ganesha.conf /etc/ganesha/ganesha-ha.conf /var/run/gluster/shared_storage/nfs-ganesha/</span><br></pre></td></tr></table></figure></li>
+<li>1.6 配置以下服务开机启动<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># systemctl enable glusterfssharedstorage.service</span><br><span class="line"># systemctl enable nfs-ganesha</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="2">
+<li>配置集群服务</li>
+</ol>
+<ul>
+<li>2.1 启用 pacemaker 和 pcsd 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># systemctl enable pacemaker.service</span><br><span class="line"># systemctl enable pcsd --now</span><br></pre></td></tr></table></figure></li>
+<li>2.2 配置 <code>hacluster</code> 用户密码<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># echo redhat | passwd --stdin hacluster</span><br></pre></td></tr></table></figure></li>
+<li>2.3 为所有节点配置认证<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># pcs cluster auth servera.glusterfs.linuxone.in serverb.glusterfs.linuxone.in serverc.glusterfs.linuxone.in</span><br><span class="line">Username: hacluster</span><br><span class="line">Password: </span><br><span class="line">serverb.glusterfs.linuxone.in: Authorized</span><br><span class="line">serverc.glusterfs.linuxone.in: Authorized</span><br><span class="line">servera.glusterfs.linuxone.in: Authorized</span><br></pre></td></tr></table></figure></li>
+<li>2.4 配置 ssh 密钥(在 servera 上执行)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># ssh-keygen -f /var/lib/glusterd/nfs/secret.pem -t rsa -N &#x27;&#x27;</span><br><span class="line"># ssh-copy-id -i /var/lib/glusterd/nfs/secret.pem.pub root@serverb</span><br><span class="line"># ssh-copy-id -i /var/lib/glusterd/nfs/secret.pem.pub root@serverc</span><br><span class="line"># scp -i /var/lib/glusterd/nfs/secret.pem /var/lib/glusterd/nfs/secret.* root@serverb:/var/lib/glusterd/nfs/</span><br><span class="line"># scp -i /var/lib/glusterd/nfs/secret.pem /var/lib/glusterd/nfs/secret.* root@serverc:/var/lib/glusterd/nfs/</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="2">
+<li>通过命令行配置 NFS-Ganesha</li>
+</ol>
+<ul>
+<li>2.1 配置 ha 集群<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># gluster nfs-ganesha enable </span><br><span class="line">Enabling NFS-Ganesha requires Gluster-NFS to be disabled across the trusted pool. Do you still want to continue?</span><br><span class="line"> (y/n) y</span><br><span class="line">This will take a few minutes to complete. Please wait ..</span><br><span class="line">nfs-ganesha : success </span><br></pre></td></tr></table></figure>
+<ul>
+<li>如果出现失败的情况，检查 rpc-statd 服务是否监听在 662 端口<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># rpcinfo -p</span><br></pre></td></tr></table></figure></li>
+<li>如果不是，重启 rpc-statd 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># systemctl restart rpc-statd</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.2 取消 ha 集群<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster nfs-ganesha disable</span><br></pre></td></tr></table></figure></li>
+<li>2.3 检查集群状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#  /usr/libexec/ganesha/ganesha-ha.sh --status /var/run/gluster/shared_storage/nfs-ganesha</span><br><span class="line">Online: [ servera.glusterfs.linuxone.in serverb.glusterfs.linuxone.in serverc.glusterfs.linuxone.in ]</span><br><span class="line"></span><br><span class="line">servera.glusterfs.linuxone.in-cluster_ip-1 servera.glusterfs.linuxone.in</span><br><span class="line">serverb.glusterfs.linuxone.in-cluster_ip-1 serverb.glusterfs.linuxone.in</span><br><span class="line">serverc.glusterfs.linuxone.in-cluster_ip-1 serverc.glusterfs.linuxone.in</span><br><span class="line"></span><br><span class="line">Cluster HA Status: HEALTHY</span><br></pre></td></tr></table></figure></li>
+<li>2.4 配置卷通过 nfs-ganesha 共享<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster vol set testvol ganesha.enable on</span><br></pre></td></tr></table></figure></li>
+<li>2.5 客户端调优<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># sysctl -w sunrpc.tcp_slot_table_entries=128</span><br><span class="line"># echo 128 &gt; /proc/sys/sunrpc/tcp_slot_table_entries</span><br><span class="line"># echo 128 &gt; /proc/sys/sunrpc/tcp_max_slot_table_entries	</span><br></pre></td></tr></table></figure></li>
+<li>2.6 客户端尝试挂载nfs<ul>
+<li>2.6.1 通过 nfs v3 进行挂载<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mount -t nfs -o vers=3 192.168.31.114:/testvol ./nfs/</span><br></pre></td></tr></table></figure></li>
+<li>2.6.2 通过 nfs v4 进行挂载<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># mount -t nfs -o vers=4 192.168.31.114:/testvol ./nfs/</span><br><span class="line"># df</span><br><span class="line">Filesystem              1K-blocks    Used Available Use% Mounted on</span><br><span class="line">devtmpfs                   914428       0    914428   0% /dev</span><br><span class="line">tmpfs                      931516       0    931516   0% /dev/shm</span><br><span class="line">tmpfs                      931516   10464    921052   2% /run</span><br><span class="line">tmpfs                      931516       0    931516   0% /sys/fs/cgroup</span><br><span class="line">/dev/mapper/rhel-root     8374272 4612860   3761412  56% /</span><br><span class="line">/dev/sda1                 1038336  187480    850856  19% /boot</span><br><span class="line">tmpfs                      186304       8    186296   1% /run/user/42</span><br><span class="line">tmpfs                      186304       0    186304   0% /run/user/0</span><br><span class="line">192.168.31.114:/testvol   2086912   54272   2032640   3% /root/nfs    &lt;&lt;&lt;</span><br></pre></td></tr></table></figure></li>
+<li>2.6.3 nfs 服务端查找客户端的ip<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"># dbus-send --type=method_call --print-reply --system --dest=org.ganesha.nfsd /org/ganesha/nfsd/ClientMgr org.ganesha.nfsd.clientmgr.ShowClients</span><br><span class="line">method return time=1651848475.811716 sender=:1.73 -&gt; destination=:1.91 serial=3293 reply_serial=2</span><br><span class="line">   struct &#123;</span><br><span class="line">      uint64 1651848475</span><br><span class="line">      uint64 811519666</span><br><span class="line">   &#125;</span><br><span class="line">   array [</span><br><span class="line">      struct &#123;</span><br><span class="line">         string &quot;::ffff:192.168.31.108&quot;   &lt;&lt;&lt; 客户端 ip</span><br><span class="line">         boolean true</span><br><span class="line">         boolean true</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         boolean true</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         struct &#123;</span><br><span class="line">            uint64 1651848442</span><br><span class="line">            uint64 829119794</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      struct &#123;</span><br><span class="line">         string &quot;::ffff:192.168.31.110&quot;   &lt;&lt;&lt; 服务端 ip</span><br><span class="line">         boolean false</span><br><span class="line">         boolean true</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         boolean false</span><br><span class="line">         struct &#123;</span><br><span class="line">            uint64 1651847866</span><br><span class="line">            uint64 926745984</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line">   ]</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.7 添加节点<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --add &lt;HA_CONF_DIR&gt; &lt;HOSTNAME&gt; &lt;NODE-VIP&gt;</span><br><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --add /var/run/gluster/shared_storage/nfs-ganesha serverd 192.168.31.98	</span><br></pre></td></tr></table></figure>
+共享存储的配置文件存放目录未来将会从<code>/var/run/gluster/ </code> 更改为 <code>/run/gluster/</code></li>
+<li>2.8 删除节点<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --delete &lt;HA_CONF_DIR&gt; &lt;HOSTNAME&gt;</span><br><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --delete /var/run/gluster/shared_storage/nfs-ganesha serverd </span><br></pre></td></tr></table></figure></li>
+<li>2.9 配置 nfs 默认 exports 的配置<ul>
+<li>2.9.1 流程<ul>
+<li>修改exports 配置文件<code>/run/gluster/shared_storage/nfs-ganesha/exports/export.testvol.conf</code></li>
+<li>重新加载配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --refresh-config &lt;HA_CONF_DIR&gt; &lt;volname&gt;</span><br><span class="line">#  /usr/libexec/ganesha/ganesha-ha.sh --refresh-config /run/gluster/shared_storage/nfs-ganesha/ testvol</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.9.2 为特定客户端进行配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">client &#123;</span><br><span class="line">        clients = 192.168.31.108;  # 客户端 ip</span><br><span class="line">        access_type = &quot;RO&quot;; # Read-only</span><br><span class="line">        Protocols = &quot;3&quot;; # 仅支持 nfs v3</span><br><span class="line">        anonymous_uid = 1440;</span><br><span class="line">        anonymous_gid = 72;</span><br><span class="line">  &#125;	  </span><br></pre></td></tr></table></figure></li>
+<li>2.9.3 开启 nfs v4 acl 权限<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Disable_ACL = false;</span><br></pre></td></tr></table></figure></li>
+<li>2.9.4 配置 nfs v4 伪路径<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Pseudo = &quot;pseudo_path&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.10 配置 nfs 共享子目录<ul>
+<li>2.10.1 方式一<ul>
+<li>2.10.1.1 配置单独共享 exports 文件，好处是不会影响已经连接到该nfs server 的客户端<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># cat export.testvol-subdir.conf</span><br><span class="line">        EXPORT&#123;</span><br><span class="line">              Export_Id = 3;    &lt;&lt;&lt; id 要不同于其他</span><br><span class="line">              Path = &quot;/testvol/subdir&quot;;   &lt;&lt;&lt; dir在 vol 下面的路径</span><br><span class="line">              FSAL &#123;</span><br><span class="line">                   name = GLUSTER;</span><br><span class="line">                   hostname=&quot;localhost&quot;;  </span><br><span class="line">                  volume=&quot;testvol&quot;;</span><br><span class="line">            volpath=&quot;/subdir&quot;;     &lt;&lt;&lt; dir在 vol 中的路径</span><br><span class="line">                   &#125;</span><br><span class="line">              Access_type = RW;</span><br><span class="line">              Disable_ACL = true;</span><br><span class="line">              Squash=&quot;No_root_squash&quot;;</span><br><span class="line">              Pseudo=&quot;/testvol/subdir&quot;;   &lt;&lt;&lt; dir在 vol 下面的路径</span><br><span class="line">              Protocols = &quot;3&quot;, &quot;4&quot;;</span><br><span class="line">              Transports = &quot;UDP&quot;,&quot;TCP&quot;;</span><br><span class="line">              SecType = &quot;sys&quot;;</span><br><span class="line">             &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+<li>2.10.1.2 配置文件<code>/etc/ganesha/ganesha.conf</code>添加条目  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">%include &quot;/var/run/gluster/shared_storage/nfs-ganesha/exports/export.testvol-subdir.conf&quot;</span><br></pre></td></tr></table></figure></li>
+<li>2.10.1.3 重新配置 nfs-ganesha<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --refresh-config /run/gluster/shared_storage/nfs-ganesha/ testvol-subdir</span><br><span class="line">Refresh-config completed on serverb.</span><br><span class="line">Refresh-config completed on serverc.</span><br><span class="line">Success: refresh-config completed.</span><br></pre></td></tr></table></figure></li>
+<li>2.10.1.4 客户端进行检测<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># showmount -e 192.168.31.114</span><br><span class="line">Export list for 192.168.31.114:</span><br><span class="line">/testvol        (everyone)</span><br><span class="line">/testvol/subdir (everyone)     &lt;&lt;&lt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.10.2 方式二<ul>
+<li>2.10.2.1 使用 subdir 条目编辑卷的 export 文件。此方法只会导出子目录而不是父卷。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">EXPORT&#123;</span><br><span class="line">      Export_Id = 4;</span><br><span class="line">      Path = &quot;/testvol/subdir&quot;;</span><br><span class="line">      FSAL &#123;</span><br><span class="line">           name = GLUSTER;</span><br><span class="line">           hostname=&quot;localhost&quot;;</span><br><span class="line">          volume=&quot;testvol&quot;;</span><br><span class="line">          volpath=&quot;/subdir&quot;;</span><br><span class="line">           &#125;</span><br><span class="line">      Access_type = RW;</span><br><span class="line">      Disable_ACL = true;</span><br><span class="line">      Squash=&quot;No_root_squash&quot;;</span><br><span class="line">      Pseudo=&quot;/testvol/subdir&quot;;</span><br><span class="line">      Protocols = &quot;3&quot;, &quot;4&quot; ;</span><br><span class="line">      Transports = &quot;UDP&quot;,&quot;TCP&quot;;</span><br><span class="line">      SecType = &quot;sys&quot;;</span><br><span class="line">     &#125;	</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.10.3 取消共享子目录<ul>
+<li>2.10.3.1 获取共享的 ID，如<code>2.10.1.1</code>共享id 为 <code>3</code></li>
+<li>2.10.3.2 删除配置文件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># rm -rf /var/run/gluster/shared_storage/nfs-ganesha/exports/</span><br></pre></td></tr></table></figure></li>
+<li>2.10.3.3 移除配置文件中对应条目<code>/etc/ganesha/ganesha.conf</code></li>
+<li>2.10.3.4 执行以下命令移除<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># dbus-send --print-reply --system --dest=org.ganesha.nfsd /org/ganesha/nfsd/ExportMgr org.ganesha.nfsd.exportmgr.RemoveExport uint16:3</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>2.11 开启<code>all_squash</code>       <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Squash = all_squash</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="3">
+<li>NFS Ganesha 停机维护</li>
+</ol>
+<ul>
+<li>3.1 ganesha 集群的宽限期最长为 20s，最大故障转移时间 20-22 秒，</li>
+<li>3.2 调整宽限期为 90秒<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># vim /etc/ganesha/ganesha.conf</span><br><span class="line">NFSv4 &#123;</span><br><span class="line">Grace_Period=&lt;grace_period_value_in_sec&gt;;</span><br><span class="line">&#125;</span><br><span class="line"># systemctl restart nfs-ganesha</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="4">
+<li>NFS Ganesha 调整<code>Readdir</code>性能<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NFS-Ganesha 进程在实例中读取目录的全部内容。该目录上的任何并行操作都会暂停，直到 readdir 操作完成。</span><br><span class="line">在 Red Hat Gluster Storage 3.5 中，该Dir_Chunk参数允许在实例中以块的形式读取目录内容。</span><br><span class="line">该参数默认启用。此参数的默认值为128。此参数的范围是1到UINT32_MAX。要禁用此参数，请将值设置为0</span><br></pre></td></tr></table></figure>
+修改配置文件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># vim /etc/ganesha/ganesha.conf</span><br><span class="line">CACHEINODE &#123;</span><br><span class="line">        Entries_HWMark = 125000;</span><br><span class="line">        Chunks_HWMark = 1000;</span><br><span class="line">        Dir_Chunk = 128; # Range: 1 to UINT32_MAX, 0 to disable</span><br><span class="line">&#125;</span><br><span class="line"># systemctl restart nfs-ganesha</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>Troubleshooting NFS Ganesha</li>
+</ol>
+<ul>
+<li>5.1 服务进行强制检查<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># service nfs-ganesha status</span><br><span class="line"># service pcsd status</span><br><span class="line"># service pacemaker status</span><br><span class="line"># pcs status</span><br></pre></td></tr></table></figure></li>
+<li>5.2 常用日志<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/var/log/ganesha/ganesha.log</span><br><span class="line">/var/log/ganesha/ganesha-gfapi.log</span><br><span class="line">/var/log/messages</span><br><span class="line">/var/log/pcsd.log</span><br></pre></td></tr></table></figure></li>
+<li>5.3 出现 nfs-ganesha HA 集群设置失败时需要清理。<br>将机器复原成原始状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --teardown /var/run/gluster/shared_storage/nfs-ganesha</span><br><span class="line"># /usr/libexec/ganesha/ganesha-ha.sh --cleanup /var/run/gluster/shared_storage/nfs-ganesha</span><br><span class="line"># systemctl stop nfs-ganesha</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="SMB-共享"><a href="#SMB-共享" class="headerlink" title="SMB 共享"></a>SMB 共享</h3><ul>
+<li><ol>
+<li>ctdb 配置 smb 高可用</li>
+</ol>
+<ul>
+<li>1.1 安装 ctdb<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install ctdb -y </span><br></pre></td></tr></table></figure></li>
+<li>1.2 在 gluster 存储节点配置 ctdb<ul>
+<li>1.2.1 创建 ctdb 卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume create ctdb replica 3 192.168.31.112:/bricks/ctdb/b1 192.168.31.110:/bricks/ctdb/b2 192.168.31.111:/bricks/ctdb/b3</span><br></pre></td></tr></table></figure></li>
+<li>1.2.2 修改配置将 <code>META=&quot;all&quot;</code> 修改为 <code>META=&quot;ctdb&quot;</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/glusterd/hooks/1/start/post/S29CTDBsetup.sh</span><br><span class="line">   /var/lib/glusterd/hooks/1/stop/pre/S29CTDB-teardown.sh</span><br></pre></td></tr></table></figure></li>
+<li>1.2.3 配置 <code>/etc/samba/smb.conf</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">clustering=yes</span><br></pre></td></tr></table></figure></li>
+<li>1.2.4 启动 ctdb 卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume start ctdb</span><br></pre></td></tr></table></figure></li>
+<li>1.2.5 创建 <code>/etc/ctdb/nodes</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/ctdb/nodes</span><br><span class="line">192.168.31.110</span><br><span class="line">192.168.31.111</span><br><span class="line">192.168.31.112</span><br></pre></td></tr></table></figure></li>
+<li>1.2.6 配置虚拟IP <code>/etc/ctdb/public_addresses</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/ctdb/public_addresses</span><br><span class="line">192.168.31.114/24 ens33</span><br></pre></td></tr></table></figure></li>
+<li>1.2.7 启动 CTDB 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># systemctl start ctdb</span><br></pre></td></tr></table></figure></li>
+<li>1.2.8 检查 ctdb 服务状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># ctdb status</span><br><span class="line">Number of nodes:3</span><br><span class="line">pnn:0 192.168.31.110   OK (THIS NODE)</span><br><span class="line">pnn:1 192.168.31.111   OK</span><br><span class="line">pnn:2 192.168.31.112   OK</span><br><span class="line">Generation:177693459</span><br><span class="line">Size:3</span><br><span class="line">hash:0 lmaster:0</span><br><span class="line">hash:1 lmaster:1</span><br><span class="line">hash:2 lmaster:2</span><br><span class="line">Recovery mode:NORMAL (0)</span><br><span class="line">Recovery master:1</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="2">
+<li>通过 SMB 共享卷</li>
+</ol>
+<ul>
+<li>2.1 默认共享卷的配置 &#x2F;etc&#x2F;samba&#x2F;smb.conf<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[gluster-VOLNAME]</span><br><span class="line">comment = For samba share of volume VOLNAME</span><br><span class="line">vfs objects = glusterfs</span><br><span class="line">glusterfs:volume = VOLNAME</span><br><span class="line">glusterfs:logfile = /var/log/samba/VOLNAME.log</span><br><span class="line">glusterfs:loglevel = 7</span><br><span class="line">path = /</span><br><span class="line">read only = no</span><br><span class="line">guest ok = yes</span><br></pre></td></tr></table></figure></li>
+<li>2.2 版本 samba-4.8.5-104 及以上进行以下配置<ul>
+<li>2.2.1 为卷开启 user.cifs 及 user.smb<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol user.cifs enable</span><br><span class="line"># gluster volume set testvol user.smb enable</span><br><span class="line"># gluster volume set testvol group samba</span><br><span class="line"># gluster volume set testvol stat-prefetch off</span><br><span class="line"># gluster volume set testvol server.allow-insecure on</span><br><span class="line"># gluster volume set testvol storage.batch-fsync-delay-usec 0</span><br></pre></td></tr></table></figure></li>
+<li>2.2.2 添加 smb 用户<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># smbpasswd -a root</span><br></pre></td></tr></table></figure></li>
+<li>2.2.3 添加以下配置，并重启 glusterd 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># vim /etc/glusterfs/glusterd.vol   &lt;&lt;&lt; 所有节点进行配置</span><br><span class="line">option rpc-auth-allow-insecure on</span><br><span class="line"># systemctl restart glusterd</span><br><span class="line"># gluster volume stop testvol</span><br><span class="line"># gluster volume start testvol</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.3 客户端配置 smb 共享<ul>
+<li>2.3.1 检测服务端 smb 共享<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># smbclient -L 192.168.31.114 -U%</span><br><span class="line"></span><br><span class="line">	Sharename       Type      Comment</span><br><span class="line">	---------       ----      -------</span><br><span class="line">	gluster-testvol Disk      For samba share of volume testvol  &lt;&lt;&lt;</span><br><span class="line">	IPC$            IPC       IPC Service (Samba Server Version 4.11.6)</span><br><span class="line">Reconnecting with SMB1 for workgroup listing.</span><br><span class="line">smbXcli_negprot_smb1_done: No compatible protocol selected by server.</span><br><span class="line">protocol negotiation failed: NT_STATUS_INVALID_NETWORK_RESPONSE</span><br><span class="line">Unable to connect with SMB1 -- no workgroup available</span><br></pre></td></tr></table></figure></li>
+<li>2.3.2 测试挂载 smb 共享<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># smbclient //192.168.31.114/gluster-testvol -U root%redhat</span><br><span class="line">Try &quot;help&quot; to get a list of possible commands.</span><br><span class="line">smb: \&gt; mkdir test</span><br><span class="line">smb: \&gt; ls</span><br><span class="line">  .                                   D        0  Sat May  7 14:28:05 2022</span><br><span class="line">  ..                                  D        0  Sat May  7 14:28:05 2022</span><br><span class="line">  test                                D        0  Sat May  7 14:28:05 2022</span><br><span class="line"></span><br><span class="line">		2086912 blocks of size 1024. 2032632 blocks available</span><br><span class="line">smb: \&gt; exit</span><br></pre></td></tr></table></figure></li>
+<li>2.3.3 win 尝试挂载smb目录<ul>
+<li>2.3.3.1 进行以下配置<br><img src="/images/22423/6.png" alt="22-57-g5"><ul>
+<li>(1) 点击添加映射</li>
+<li>(2) 输入共享路径<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\\192.168.31.114\gluster-testvol</span><br></pre></td></tr></table></figure></li>
+<li>(3) 点击完成添加</li>
+</ul>
+</li>
+<li>2.3.3.2 添加后可以打开该共享存储<br><img src="/images/22423/5.png" alt="22-57-g5"></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="3">
+<li>性能调整</li>
+</ol>
+<ul>
+<li>3.1 启用元数据缓存<ul>
+<li><ol>
+<li>启用元数据缓存<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;volname&gt; group metadata-cache</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>增加缓存文件个数      <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;VOLNAME&gt; network.inode-lru-limit &lt;n&gt;</span><br></pre></td></tr></table></figure>
+设置为 50000，如果卷中活动文件数量非常多，可以增加，但是增加这个数字会增加 brick 进程的内存占用</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>3.2 提高目录列表性能<br>随着卷中 brick 数量增加，目录列表会变慢，但是文件&#x2F;目录编号保持不变。通过启用<code>readdir</code>卷选项，<br>目录列表的性能独立于卷中brick的数量。因此，卷规模增加便不会降低目录列表的性能。<br>只有当卷的分发计数为 2 或更大并且目录的大小很小（&lt; 3000 个条目）时，才能期望性能提高。<br>卷（分布计数）越大，性能优势就越大。<ul>
+<li><ol>
+<li>启用 <code>readdir</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;VOLNAME&gt; performance.readdir-ahead on</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>启用 <code>parallel-readdri</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;VOLNAME&gt; performance.parallel-readdir on</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>如果卷有超过50个 brick，建议缓存增加到 10Mb以上<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;VOLNAME&gt; performance.rda-cache-limit &lt;CACHE SIZE&gt;</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li>3.3  增强文件&#x2F;目录创建性能<br>在创建&#x2F;重命名任何文件之前，会发送查找（在 SMB 中为 5-6）以验证文件是否已存在。<br>通过在可能的情况下从缓存中提供这些查找，在 SMB 访问中将创建&#x2F;重命名性能提高了多倍。<br>启用缓存<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;volname&gt; group nl-cache</span><br></pre></td></tr></table></figure>
+启用后，缓存超时失效时间增加到10分钟</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="检查客户端"><a href="#检查客户端" class="headerlink" title="检查客户端"></a>检查客户端</h3><ul>
+<li><ol>
+<li>检查客户端版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume status volname clients</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li>对于旧版本的 glusterfs （3.2 版本及以上）<ul>
+<li><ol>
+<li>为要检查客户端的卷进行状态转储<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume statedump volname</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>找到状态转储的目录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster --print-statedumpdir</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>找到客户端信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># grep -A4 &quot;identifier=client_ip&quot; statedumpfile</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/gluster/" rel="tag"># gluster</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/21/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%B8%89%EF%BC%89/" rel="prev" title="glusterfs-管理员全记录：<font color=blue>三</font>">
+      <i class="fa fa-chevron-left"></i> glusterfs-管理员全记录：<font color=blue>三</font>
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/06/18/RH403-satellite6-%E9%83%A8%E7%BD%B2%E5%8D%87%E7%BA%A7/" rel="next" title="RH403_satellite6_部署升级_一">
+      RH403_satellite6_部署升级_一 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E7%94%9F%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%8D%87%E7%BA%A7"><span class="nav-number">1.</span> <span class="nav-text">原生客户端升级</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E7%94%9F%E5%AE%A2%E6%88%B7%E7%AB%AFglusterfs-%E5%B8%B8%E7%94%A8%E6%8C%82%E8%BD%BD%E9%80%89%E9%A1%B9"><span class="nav-number">2.</span> <span class="nav-text">原生客户端glusterfs 常用挂载选项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NFS-%E9%85%8D%E7%BD%AE-CTDB"><span class="nav-number">3.</span> <span class="nav-text">NFS 配置 CTDB</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NFS-Ganesha"><span class="nav-number">4.</span> <span class="nav-text">NFS Ganesha</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SMB-%E5%85%B1%E4%BA%AB"><span class="nav-number">5.</span> <span class="nav-text">SMB 共享</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">6.</span> <span class="nav-text">检查客户端</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="红帽 Satellite6.8  部署、更新、升级satellite &#x2F; capsule 6.8 RHEL7 -&gt; 6.9 -&gt; 6.10 -&gt; 6.11 RHEL 8 **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RH403_satellite6_部署升级_一">
+<meta property="og:url" content="http://example.com/2022/06/18/RH403-satellite6-%E9%83%A8%E7%BD%B2%E5%8D%87%E7%BA%A7/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="红帽 Satellite6.8  部署、更新、升级satellite &#x2F; capsule 6.8 RHEL7 -&gt; 6.9 -&gt; 6.10 -&gt; 6.11 RHEL 8 **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22619/1.png">
+<meta property="og:image" content="http://example.com/images/22619/2.png">
+<meta property="og:image" content="http://example.com/images/22619/3.png">
+<meta property="og:image" content="http://example.com/images/22619/4.png">
+<meta property="og:image" content="http://example.com/images/22619/5.png">
+<meta property="og:image" content="http://example.com/images/22619/6.png">
+<meta property="og:image" content="http://example.com/images/22619/7.png">
+<meta property="og:image" content="http://example.com/images/22619/35.JPG">
+<meta property="og:image" content="http://example.com/images/22619/36.JPG">
+<meta property="og:image" content="http://example.com/images/22619/37.JPG">
+<meta property="og:image" content="http://example.com/images/22619/38.JPG">
+<meta property="og:image" content="http://example.com/images/22619/39.JPG">
+<meta property="og:image" content="http://example.com/images/22619/41.png">
+<meta property="og:image" content="http://example.com/images/22619/40.png">
+<meta property="article:published_time" content="2022-06-18T21:04:42.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="RH403_Satellite6">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22619/1.png">
+
+<link rel="canonical" href="http://example.com/2022/06/18/RH403-satellite6-%E9%83%A8%E7%BD%B2%E5%8D%87%E7%BA%A7/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>RH403_satellite6_部署升级_一 | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/18/RH403-satellite6-%E9%83%A8%E7%BD%B2%E5%8D%87%E7%BA%A7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          RH403_satellite6_部署升级_一
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-18 21:04:42" itemprop="dateCreated datePublished" datetime="2022-06-18T21:04:42+00:00">2022-06-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/installation/" itemprop="url" rel="index"><span itemprop="name">installation</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/installation/upgrade/" itemprop="url" rel="index"><span itemprop="name">upgrade</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22619/1.png" alt="22-619-g1"></p>
+<html><pre><code> 红帽 Satellite6.8 
+部署、更新、升级satellite / capsule 6.8 RHEL7 -> 6.9 -> 6.10 -> 6.11 RHEL 8</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+---
+
+<h2 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h2><ul>
+<li>Satellite 环境如下<table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>IP</th>
+<th>lifecycle env</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>satellite.linuxone.in</td>
+<td>192.168.31.70</td>
+<td>default</td>
+</tr>
+<tr>
+<td>capsule.linuxone.in</td>
+<td>192.168.31.71</td>
+<td>capsule</td>
+</tr>
+<tr>
+<td>capsule2.linuxone.in</td>
+<td>192.168.31.72</td>
+<td>kickstart</td>
+</tr>
+<tr>
+<td>rhel7u6.linuxone.in</td>
+<td>192.168.31.76</td>
+<td>capsule</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<h2 id="部署-Satellite-6-8"><a href="#部署-Satellite-6-8" class="headerlink" title="部署 Satellite 6.8"></a>部署 Satellite 6.8</h2><ul>
+<li><p>配置防火墙</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># firewall-cmd \</span><br><span class="line">--add-port=&quot;80/tcp&quot; --add-port=&quot;443/tcp&quot; \</span><br><span class="line">--add-port=&quot;5647/tcp&quot; --add-port=&quot;8000/tcp&quot; \</span><br><span class="line">--add-port=&quot;8140/tcp&quot; --add-port=&quot;9090/tcp&quot; \</span><br><span class="line">--add-port=&quot;53/udp&quot; --add-port=&quot;53/tcp&quot; \</span><br><span class="line">--add-port=&quot;67/udp&quot; --add-port=&quot;69/udp&quot; \</span><br><span class="line">--add-port=&quot;5000/tcp&quot;</span><br><span class="line"># firewall-cmd --runtime-to-permanent</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>确认 hostname 可以 ping 通，且可以解析</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># ping satellite.linuxone.in</span><br><span class="line"># nslookup satellite.linuxone.in</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>注册后开启以下 repo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable=rhel-7-server-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-6.8-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-maintenance-6-rpms \</span><br><span class="line">--enable=rhel-server-rhscl-7-rpms \</span><br><span class="line">--enable=rhel-7-server-ansible-2.9-rpms</span><br><span class="line"></span><br><span class="line">部署 satellite 6.9</span><br><span class="line">--enable=rhel-7-server-satellite-6.9-rpms</span><br><span class="line"></span><br><span class="line">部署 satellite 6.10 </span><br><span class="line">--enable=rhel-7-server-satellite-6.10-rpms </span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果网络速度较慢，可以开启红帽 china.cdn</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">subscription-manager config --rhsm.baseurl=https://china.cdn.redhat.com</span><br><span class="line">subscription-manager refresh</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>安装 Satellite 6.8 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install satellite</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>部署 satellite 6.8</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># satellite-installer --scenario satellite \</span><br><span class="line">--foreman-initial-organization &quot;org&quot; \</span><br><span class="line">--foreman-initial-location &quot;location&quot; \</span><br><span class="line">--foreman-initial-admin-username admin \</span><br><span class="line">--foreman-initial-admin-password redhat</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建订阅分配并导出 manifest 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Red Hat Customer Portal &gt; subscriptions &gt; subscription allocation &gt; create / add subscriptions / export manifest</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Satellite 导入文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">web gui &gt; content &gt; subscriptions</span><br><span class="line">注意，请关闭 sca 功能 </span><br><span class="line">manage manifest &gt; 点击按钮关闭 sca</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h2 id="部署-capsule-6-8"><a href="#部署-capsule-6-8" class="headerlink" title="部署 capsule 6.8"></a>部署 capsule 6.8</h2><ul>
+<li><p>satellite 同步以下 repo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">--enable=rhel-7-server-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-capsule-6.8-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-maintenance-6-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-tools-6.8-rpms \</span><br><span class="line">--enable=rhel-server-rhscl-7-rpms \</span><br><span class="line">--enable=rhel-7-server-ansible-2.9-rpms</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将部署 capsule 主机注册到 satellite（lifecycle env &#x2F; cv &#x2F; activation key 创建方式不进行介绍）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">capsule 主机：</span><br><span class="line"># curl --insecure --output katello-ca-consumer-latest.noarch.rpm https://satellite.linuxone.in/pub/katello-ca-consumer-latest.noarch.rpm</span><br><span class="line"># yum localinstall katello-ca-consumer-latest.noarch.rpm</span><br><span class="line"># subscription-manager register --org=&quot;org&quot; --activationkey=&quot;capsule-deploy&quot;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>capsule 主机防火墙配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># firewall-cmd --add-port=&quot;53/udp&quot; --add-port=&quot;53/tcp&quot; \</span><br><span class="line">--add-port=&quot;67/udp&quot; --add-port=&quot;69/udp&quot; \</span><br><span class="line">--add-port=&quot;80/tcp&quot; --add-port=&quot;443/tcp&quot; \</span><br><span class="line">--add-port=&quot;5000/tcp&quot; --add-port=&quot;5647/tcp&quot; \</span><br><span class="line">--add-port=&quot;8000/tcp&quot; --add-port=&quot;8140/tcp&quot; \</span><br><span class="line">--add-port=&quot;8443/tcp&quot; --add-port=&quot;9090/tcp&quot;</span><br><span class="line"></span><br><span class="line"># firewall-cmd --runtime-to-permanent</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>capsule 主机开启以下 repo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable=rhel-7-server-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-capsule-6.8-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-maintenance-6-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-tools-6.8-rpms \</span><br><span class="line">--enable=rhel-server-rhscl-7-rpms \</span><br><span class="line">--enable=rhel-7-server-ansible-2.9-rpms</span><br><span class="line"></span><br><span class="line">6.9 capsule开启</span><br><span class="line">--enable=rhel-7-server-satellite-capsule-6.9-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-tools-6.9-rpms \</span><br><span class="line"></span><br><span class="line">6.10 capsule开启</span><br><span class="line">--enable=rhel-7-server-satellite-capsule-6.10-rpms \</span><br><span class="line">--enable=rhel-7-server-satellite-tools-6.10-rpms \</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>satellite 端为 capsule 创建证书并将证书拷贝至 capsule：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"># mkdir /root/capsule_cert</span><br><span class="line"># capsule-certs-generate \</span><br><span class="line">--foreman-proxy-fqdn capsule.linuxone.in \</span><br><span class="line">--certs-tar /root/capsule_cert/capsule_certs.tar</span><br><span class="line"></span><br><span class="line">会有类似输出：</span><br><span class="line">  satellite-installer \</span><br><span class="line">                    --scenario capsule \</span><br><span class="line">                    --certs-tar-file                              &quot;/root/capsule_certs.tar&quot;\</span><br><span class="line">                    --foreman-proxy-content-parent-fqdn           &quot;satellite.linuxone.in&quot;\</span><br><span class="line">                    --foreman-proxy-register-in-foreman           &quot;true&quot;\</span><br><span class="line">                    --foreman-proxy-foreman-base-url              &quot;https://satellite.linuxone.in&quot;\</span><br><span class="line">                    --foreman-proxy-trusted-hosts                 &quot;satellite.linuxone.in&quot;\</span><br><span class="line">                    --foreman-proxy-trusted-hosts                 &quot;capsule.linuxone.in&quot;\</span><br><span class="line">                    --foreman-proxy-oauth-consumer-key            &quot;aTupLLeC4bihuUiVUVaEKyLybnXzWUrd&quot;\</span><br><span class="line">                    --foreman-proxy-oauth-consumer-secret         &quot;x22RfhnZuyQAsXZ3bXoRhaPXvNAcsJgk&quot;\</span><br><span class="line">                    --puppet-server-foreman-url                   &quot;https://satellite.linuxone.in&quot;</span><br><span class="line"># scp /root/capsule_cert/capsule_certs.tar root@capsule.linuxone.in:/root/</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>capsule 安装所需软件包</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install satellite-capsule</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在 capsule 端执行证书创建时的输出<br>安装完成后会有如下显示<br><img src="/images/22619/2.png" alt="22-619-g2"></p>
+</li>
+<li><p>为 capsule 添加 lifecycle env </p>
+<ul>
+<li><ol>
+<li>web gui &gt; infrastructure &gt; capsules &gt; 对应 capsule edit<br><img src="/images/22619/3.png" alt="22-619-g3"></li>
+</ol>
+</li>
+<li><ol start="2">
+<li><code>Lifecycle EnvironmentsLibrarycapsule-deploy</code> 标签下进行附加<br><img src="/images/22619/4.png" alt="22-619-g4"></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>手动进行 capsule 同步</p>
+<ul>
+<li><ol>
+<li>web gui &gt; infrastructure &gt; capsules &gt; 点击 capsule &gt; sync<br><img src="/images/22619/5.png" alt="22-619-g5"></li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="client-注册到-satellite"><a href="#client-注册到-satellite" class="headerlink" title="client 注册到 satellite"></a>client 注册到 satellite</h2><ul>
+<li><p>client 执行以下命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># curl --insecure --output katello-ca-consumer-latest.noarch.rpm https://satellite.linuxone.in/pub/katello-ca-consumer-latest.noarch.rpm</span><br><span class="line"># yum localinstall katello-ca-consumer-latest.noarch.rpm</span><br><span class="line"># subscription-manager register --org=&quot;org&quot; --activationkey=&quot;capsule-deploy&quot;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>安装必须的 satellite-tools 组件 （将会在 satellite 7 中移除）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install katello-agent katello-host-tools-tracer</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="更新-satellite-6-8-x2F-capsule-6-8-x2F-client"><a href="#更新-satellite-6-8-x2F-capsule-6-8-x2F-client" class="headerlink" title="更新 satellite 6.8 &#x2F; capsule 6.8 &#x2F; client"></a>更新 satellite 6.8 &#x2F; capsule 6.8 &#x2F; client</h2><ul>
+<li><p>satellite</p>
+<ul>
+<li>开启以下 repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable \</span><br><span class="line">rhel-7-server-satellite-maintenance-6-rpms</span><br></pre></td></tr></table></figure></li>
+<li>安装必须软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install rubygem-foreman_maintain</span><br></pre></td></tr></table></figure></li>
+<li>检查可用更新的版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure>
+<img src="/images/22619/6.png" alt="22-619-g6"></li>
+<li>更新选择 <code>6.8.z</code> 版本。检查当前系统是否已经做好 <code>update</code> 准备<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.8.z</span><br></pre></td></tr></table></figure></li>
+<li>开始更新<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.8.z</span><br></pre></td></tr></table></figure></li>
+<li>更新完成，重启 satellite<br><img src="/images/22619/7.png" alt="22-619-g7"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain service stop</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>capsule </p>
+<ul>
+<li>升级并重启 <code>gofer</code> 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain packages install gofer</span><br><span class="line"># systemctl restart goferd</span><br></pre></td></tr></table></figure></li>
+<li>开启以下 repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable \</span><br><span class="line">rhel-7-server-satellite-maintenance-6-rpms</span><br></pre></td></tr></table></figure></li>
+<li>检查可用更新的版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure></li>
+<li>更新选择 <code>6.8.z</code> 版本。检查当前系统是否已经做好 <code>update</code> 准备<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.8.z</span><br></pre></td></tr></table></figure></li>
+<li>开始更新<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.8.z</span><br></pre></td></tr></table></figure></li>
+<li>停止 capsule 服务，并重启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain service stop</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>client</p>
+<ul>
+<li>升级 <code>gofer</code> <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum update gofer </span><br></pre></td></tr></table></figure></li>
+<li>重启 <code>goferd</code> 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># systemctl restart goferd</span><br></pre></td></tr></table></figure></li>
+<li>更新后重启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># yum update</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="升级-satellite-6-8-至-6-9-（satellite-x2F-capsule-x2F-client）"><a href="#升级-satellite-6-8-至-6-9-（satellite-x2F-capsule-x2F-client）" class="headerlink" title="升级 satellite 6.8 至 6.9 （satellite &#x2F; capsule &#x2F;client）"></a>升级 satellite 6.8 至 6.9 （satellite &#x2F; capsule &#x2F;client）</h2><ul>
+<li>satellite 6.8 &gt; 6.9<ul>
+<li>确认开启以下 repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable \</span><br><span class="line">rhel-7-server-satellite-maintenance-6-rpms</span><br></pre></td></tr></table></figure></li>
+<li>检查可用更新的版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure></li>
+<li>更新选择 <code>6.9</code> 版本。检查当前系统是否已经做好 <code>upgrade</code> 准备<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.9</span><br></pre></td></tr></table></figure></li>
+<li>开始升级<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.9</span><br></pre></td></tr></table></figure></li>
+<li>停止 satellite 服务，并重启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain service stop</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>capsule 6.8 &gt; 6.9<ul>
+<li>satellite 版本为6.9，且已经同步以下repo 并发布到 cv<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-satellite-capsule-6.9-rpms</span><br><span class="line">rhel-7-server-satellite-tools-6.9-rpms</span><br></pre></td></tr></table></figure></li>
+<li>安装升级检测软件包：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install rubygem-foreman_maintain</span><br></pre></td></tr></table></figure></li>
+<li>升级并重启 <code>gofer</code> 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain packages install gofer</span><br><span class="line"># systemctl restart goferd</span><br></pre></td></tr></table></figure></li>
+<li>检查可用更新的版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure></li>
+<li>更新选择 <code>6.9</code> 版本。检查当前系统是否已经做好 <code>upgrade</code> 准备<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.9</span><br></pre></td></tr></table></figure></li>
+<li>开始升级<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.9</span><br></pre></td></tr></table></figure></li>
+<li>停止 satellite 服务，并重启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain service stop</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>client 升级步骤如上</li>
+</ul>
+<hr>
+<h2 id="升级-satellite-6-9-至-6-10-（satellite-x2F-capsule-x2F-client）"><a href="#升级-satellite-6-9-至-6-10-（satellite-x2F-capsule-x2F-client）" class="headerlink" title="升级 satellite 6.9 至 6.10 （satellite &#x2F; capsule &#x2F;client）"></a>升级 satellite 6.9 至 6.10 （satellite &#x2F; capsule &#x2F;client）</h2><ul>
+<li><p>satellite 6.9 &gt; 6.10</p>
+<ul>
+<li>准备迁移到 pulp3<ul>
+<li><ol>
+<li>确保以下命令可以正确执行<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># foreman-rake katello:correct_repositories COMMIT=true --trace</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>更新文件权限<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain prep-6.10-upgrade</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>检查预迁移的内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain content migration-stats</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>准备迁移的内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain content prepare</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>检查迁移进度<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain content migration-stats</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li>升级 satellite 6.9 -&gt; 6.10<ul>
+<li><ol>
+<li>确保以下条目被注释或不存在<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/etc/foreman-installer/custom-hiera.yaml</span><br><span class="line">apache::purge_configs: false</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>开启以下 repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable \</span><br><span class="line">rhel-7-server-satellite-maintenance-6-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><ol start="3">
+<li>检查可用更新的版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>更新选择 <code>6.10</code> 版本。检查当前系统是否已经做好 <code>upgrade</code> 准备<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.10</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>开始升级<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.10</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>停止 satellite 服务，并重启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain service stop</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>迁移 pulp3 完成，执行以下命令清理 pulp2 中的内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain content remove-pulp2</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>capsule 6.9 &gt; 6.10</p>
+<ul>
+<li><ol>
+<li>satellite 同步并开启以下 repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-satellite-capsule-6.10-rpms</span><br><span class="line">rhel-7-server-satellite-tools-6.10-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>确保以下条目被注释或不存在<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/etc/foreman-installer/custom-hiera.yaml</span><br><span class="line">apache::purge_configs: false</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>检查可用更新的版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># yum install rubygem-foreman_maintain</span><br><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>更新选择 <code>6.10</code> 版本。检查当前系统是否已经做好 <code>upgrade</code> 准备<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.10</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>开始升级<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.10</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>停止 satellite 服务，并重启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain service stop</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>迁移 pulp3 完成，执行以下命令清理 pulp2 中的内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain content remove-pulp2</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="8">
+<li>capsule 升级完成后，请手动执行同步，因为内容的迁移并不会从 satellite 迁移过来。</li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>client 升级</p>
+<ul>
+<li>开启以下repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-satellite-tools-6.10-rpms</span><br></pre></td></tr></table></figure></li>
+<li>更新软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install -y katello-agent katello-host-tools-tracer</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<h2 id="升级-satellite-6-10-至-6-11-rhel8-（satellite-x2F-capsule-x2F-client）"><a href="#升级-satellite-6-10-至-6-11-rhel8-（satellite-x2F-capsule-x2F-client）" class="headerlink" title="升级 satellite 6.10 至 6.11 rhel8 （satellite &#x2F; capsule &#x2F;client）"></a>升级 satellite 6.10 至 6.11 rhel8 （satellite &#x2F; capsule &#x2F;client）</h2><ul>
+<li><p>satellite 6.10 &gt; satellite 6.11</p>
+<ul>
+<li><ol>
+<li>开启以下 rpeo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable rhel-7-server-satellite-maintenance-6.11-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>检查可用版本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade list-versions</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>升级预检查<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.11</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>升级，完成后重启 satellite<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.11</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>capsule 6.10 &gt; 6.11</p>
+<ul>
+<li><ol>
+<li>satellite 同步并开启以下 repo<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-ansible-2.9-rpms</span><br><span class="line">rhel-7-server-rpms/7Server</span><br><span class="line">rhel-7-server-satellite-capsule-6.11-rpms</span><br><span class="line">rhel-7-server-satellite-maintenance-6.11-rpms</span><br><span class="line">rhel-server-rhscl-7-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>satellite 重新为 capsule 创建 cert 文件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># capsule-certs-generate --foreman-proxy-fqdn &quot;capsule.linuxone.in&quot; --certs-update-all --certs-tar &quot;~/capsule.linuxone.in-certs.tar&quot;</span><br><span class="line"># scp capsule.linuxone.in-certs.tar root@capsule.linuxone.in:~</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>确保 capsule 可以访问以上 repo ，然后执行检查维护<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain self-upgrade</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>检查 capsule 中配置的 satellite 是否已经指向 satellite<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># grep foreman_url /etc/foreman-proxy/settings.yml</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>检查运行状况确认是否可以升级<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade check --target-version 6.11</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>将新生成的证书解压到 &#x2F;root 目录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># tar xf capsule.linuxone.in-certs.tar</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>执行升级<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain upgrade run --target-version 6.11</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>satellite 6.11 RHEL7 升级 RHEL8</p>
+<ul>
+<li><ol>
+<li>开启以下 repo <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable=rhel-7-server-extras-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>安装所需的 leapp leapp-repository 软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain packages install leapp leapp-repository</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>leapp 提前分析<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># leapp preupgrade</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>手动解决 leapp 分析的问题<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># rmmod pata_acpi</span><br><span class="line"># leapp answer --section remove_pam_pkcs11_module_check.confirm=True\</span><br><span class="line"># echo PermitRootLogin yes | tee -a /etc/ssh/sshd_config</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>由于 bug ，为 satellite 添加标记，并持续 preupgrade 直到没有 error<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repo-override --repo=satellite-6.11-for-rhel-8-x86_64-rpms --add=module_hotfixes:1   &lt;&lt;&lt; 必须</span><br><span class="line"># subscription-manager repo-override --repo=ansible-2.9-for-rhel-8-x86_64-rpms --add=module_hotfixes:1</span><br><span class="line"># subscription-manager repo-override --repo=satellite-maintenance-6.11-for-rhel-8-x86_64-rpms  --add=module_hotfixes:1</span><br><span class="line"></span><br><span class="line"># subscription-manager repo-override --repo=satellite-capsule-6.11-for-rhel-8-x86_64-rpms --add=module_hotfixes:1</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>由于 BUG， 会出现 ansible 的报错，采用以下缓解办法<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># rpm -e ansible ansible-test --nodeps</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>升级过程</li>
+</ol>
+<ul>
+<li>7.1 leapp upgrade 命令无报错<br><img src="/images/22619/35.JPG" alt="22-619-g35"></li>
+<li>7.2 重启主机，开始升级<br><img src="/images/22619/36.JPG" alt="22-619-g36"><br>升级完成时会有以下显示<br><img src="/images/22619/37.JPG" alt="22-619-g37"></li>
+<li>7.3 升级完成自动重启，此时需要重新 label 各个文件系统，需要一定时间<br><img src="/images/22619/38.JPG" alt="22-619-g38"></li>
+<li>7.4 计算机启动后，检查当前系统版本与 satellite 状态<br><img src="/images/22619/39.JPG" alt="22-619-g39"></li>
+</ul>
+</li>
+<li><ol start="8">
+<li>重新运行安装命令<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-installer</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>capsule 6.11 RHEL7 升级 RHEL8  </p>
+<ul>
+<li><ol>
+<li>satellite 同步以下 repo <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">satellite-capsule-6.11-for-rhel-8-x86_64-rpms </span><br><span class="line">satellite-maintenance-6.11-for-rhel-8-x86_64-rpms</span><br><span class="line">ansible-2.9-for-rhel-8-x86_64-rpms</span><br><span class="line">baseos 8.6</span><br><span class="line">appstream 8.6</span><br><span class="line">ha 8.6</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>开启以下 repo <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repos --enable=rhel-7-server-extras-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>安装所需的 leapp leapp-repository 软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-maintain packages install leapp leapp-repository</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>由于 bug ，为 satellite 添加标记，并持续 preupgrade 直到没有 error<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># subscription-manager repo-override --repo=satellite-capsule-6.11-for-rhel-8-x86_64-rpms --add=module_hotfixes:1</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>由于 BUG， 会出现 ansible 的报错，采用以下缓解办法<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># rpm -e ansible ansible-test --nodeps</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>参考以下只是文档，下载 <code>leapp-data17.tar.gz</code> 到 capsule<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># tar -xzf leapp-data17.tar.gz -C /etc/leapp/files &amp;&amp; rm leapp-data17.tar.gz</span><br></pre></td></tr></table></figure>
+Leapp utility metadata in-place upgrades of RHEL for disconnected upgrades<br><a target="_blank" rel="noopener" href="https://access.redhat.com/articles/3664871">https://access.redhat.com/articles/3664871</a></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>leapp 提前分析，直至 leapp preupgrade 没有报错<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># leapp preupgrade --target 8.6</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="8">
+<li>手动解决 leapp 分析的问题<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># rmmod pata_acpi</span><br><span class="line"># leapp answer --section remove_pam_pkcs11_module_check.confirm=True</span><br><span class="line"># echo PermitRootLogin yes | tee -a /etc/ssh/sshd_config</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="9">
+<li>进行升级</li>
+</ol>
+<ul>
+<li>9.1 leapp 进行升级，并重启 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># leapp upgrade --target 8.6</span><br><span class="line"># reboot</span><br></pre></td></tr></table></figure></li>
+<li>9.2 从新内核启动<br> <img src="/images/22619/41.png" alt="22-619-g41"></li>
+<li>9.3 selinux 需要 relabel ，需要等待一段时间<br> <img src="/images/22619/40.png" alt="22-619-g40"></li>
+</ul>
+</li>
+<li><ol start="10">
+<li>重新检查 capsule 一致性<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># satellite-installer</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<p>至此， satellite&#x2F;capsule 6.8 升级 6.9 &#x2F; 6.10 &#x2F; 6.11 + RHEL8 的所有流程已经整理完毕，所有过程仅供参考。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/RH403-Satellite6/" rel="tag"># RH403_Satellite6</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/23/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%9B%9B%EF%BC%89/" rel="prev" title="glusterfs-管理员全记录：<font color=yellow>四</font>">
+      <i class="fa fa-chevron-left"></i> glusterfs-管理员全记录：<font color=yellow>四</font>
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/06/19/RH403-satellite6-%E8%BF%9C%E7%A8%8B%E6%89%A7%E8%A1%8C/" rel="next" title="RH403_satellite6-主机调配_二">
+      RH403_satellite6-主机调配_二 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">环境介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-Satellite-6-8"><span class="nav-number">2.</span> <span class="nav-text">部署 Satellite 6.8</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-capsule-6-8"><span class="nav-number">3.</span> <span class="nav-text">部署 capsule 6.8</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#client-%E6%B3%A8%E5%86%8C%E5%88%B0-satellite"><span class="nav-number">4.</span> <span class="nav-text">client 注册到 satellite</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0-satellite-6-8-x2F-capsule-6-8-x2F-client"><span class="nav-number">5.</span> <span class="nav-text">更新 satellite 6.8 &#x2F; capsule 6.8 &#x2F; client</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7-satellite-6-8-%E8%87%B3-6-9-%EF%BC%88satellite-x2F-capsule-x2F-client%EF%BC%89"><span class="nav-number">6.</span> <span class="nav-text">升级 satellite 6.8 至 6.9 （satellite &#x2F; capsule &#x2F;client）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7-satellite-6-9-%E8%87%B3-6-10-%EF%BC%88satellite-x2F-capsule-x2F-client%EF%BC%89"><span class="nav-number">7.</span> <span class="nav-text">升级 satellite 6.9 至 6.10 （satellite &#x2F; capsule &#x2F;client）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7-satellite-6-10-%E8%87%B3-6-11-rhel8-%EF%BC%88satellite-x2F-capsule-x2F-client%EF%BC%89"><span class="nav-number">8.</span> <span class="nav-text">升级 satellite 6.10 至 6.11 rhel8 （satellite &#x2F; capsule &#x2F;client）</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

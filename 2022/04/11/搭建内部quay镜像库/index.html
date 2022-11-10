@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="搭建内部quay镜像库 前提：部署https内部quay镜像仓库 由于内网quay主机配置不够，仅提供配置步骤，不会保留该服务 **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搭建内部quay镜像库">
+<meta property="og:url" content="http://example.com/2022/04/11/%E6%90%AD%E5%BB%BA%E5%86%85%E9%83%A8quay%E9%95%9C%E5%83%8F%E5%BA%93/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="搭建内部quay镜像库 前提：部署https内部quay镜像仓库 由于内网quay主机配置不够，仅提供配置步骤，不会保留该服务 **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22411/17.png">
+<meta property="og:image" content="http://example.com/images/22411/8.png">
+<meta property="og:image" content="http://example.com/images/22411/9.png">
+<meta property="og:image" content="http://example.com/images/22411/10.png">
+<meta property="og:image" content="http://example.com/images/22411/11.png">
+<meta property="og:image" content="http://example.com/images/22411/12.png">
+<meta property="og:image" content="http://example.com/images/22411/13.png">
+<meta property="og:image" content="http://example.com/images/22411/14.png">
+<meta property="og:image" content="http://example.com/images/22411/15.png">
+<meta property="og:image" content="http://example.com/images/22411/16.png">
+<meta property="og:image" content="http://example.com/images/22411/18.png">
+<meta property="og:image" content="http://example.com/images/22411/19.png">
+<meta property="article:published_time" content="2022-04-11T22:39:41.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="registry">
+<meta property="article:tag" content="container">
+<meta property="article:tag" content="quay">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22411/17.png">
+
+<link rel="canonical" href="http://example.com/2022/04/11/%E6%90%AD%E5%BB%BA%E5%86%85%E9%83%A8quay%E9%95%9C%E5%83%8F%E5%BA%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>搭建内部quay镜像库 | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/11/%E6%90%AD%E5%BB%BA%E5%86%85%E9%83%A8quay%E9%95%9C%E5%83%8F%E5%BA%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          搭建内部quay镜像库
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-11 22:39:41" itemprop="dateCreated datePublished" datetime="2022-04-11T22:39:41+00:00">2022-04-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/configruation/" itemprop="url" rel="index"><span itemprop="name">configruation</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="搭建内部quay镜像库"><a href="#搭建内部quay镜像库" class="headerlink" title="搭建内部quay镜像库"></a>搭建内部quay镜像库</h1><p><img src="/images/22411/17.png" alt="22-411-17"></p>
+<html><pre><code>前提：部署https内部quay镜像仓库
+由于内网quay主机配置不够，仅提供配置步骤，不会保留该服务</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+
+<span id="more"></span>
+
+<h4 id="前提"><a href="#前提" class="headerlink" title="前提"></a>前提</h4><ul>
+<li><ol>
+<li>移除系统自带<code>runc</code>&#x2F;<code>podman</code>&#x2F;<code>conmon</code></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>关闭selinux</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>关闭firewalld</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>完成后重启</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>域名解析要配置完成，为确保不出错，可以配置到<code>/etc/hosts</code>文件中</li>
+</ol>
+</li>
+</ul>
+<hr>
+<h4 id="开始安装"><a href="#开始安装" class="headerlink" title="开始安装"></a>开始安装</h4><ul>
+<li><ol>
+<li>安装必要软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install podman container-tools -y</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>podman 登录官方镜像库 registry.redhat.io<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman login registry.redhat.io</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>创建文件夹<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># mkdir -p $QUAY/config</span><br><span class="line"># mkdir -p $QUAY/postgres-quay</span><br><span class="line"># mkdir -p $QUAY/storage</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>启动postgres</li>
+</ol>
+<ul>
+<li>4.1 启动postgres容器<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> # podman run -d --rm  --name postgresql-quay -e POSTGRESQL_USER=quayuser \</span><br><span class="line">   -e POSTGRESQL_PASSWORD=quaypass -e POSTGRESQL_DATABASE=quay \</span><br><span class="line">-e POSTGRESQL_ADMIN_PASSWORD=adminpass -p 5432:5432 -v $QUAY/postgres-quay:/var/lib/pgsql/data:z registry.redhat.io/rhel8/postgresql-10:1</span><br></pre></td></tr></table></figure></li>
+<li>4.2 确保 <code>pg_trgm</code> 模块安装<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman exec -it postgresql-quay /bin/bash -c &#x27;echo &quot;CREATE EXTENSION IF NOT EXISTS pg_trgm&quot; | psql -d quay -U postgres&#x27;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="5">
+<li>启动redis<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">podman run -d --rm --name redis -p 6379:6379 -e REDIS_PASSWORD=strongpassword registry.redhat.io/rhel8/redis-5:1</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>配置证书，步骤较多，命令如下</li>
+</ol>
+<ul>
+<li>6.1 创建证书存放目录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mkdir /etc/crts</span><br></pre></td></tr></table></figure></li>
+<li>6.2. 创建证书<ul>
+<li><p>6.2.1 创建ca:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># openssl genrsa -out /etc/crts/cert.ca.key 4096</span><br><span class="line"># openssl req -x509 -new -nodes  -key /etc/crts/cert.ca.key  -sha256 -days 36500  -out /etc/crts/cert.ca.crt  -subj /CN=&quot;Local Red Hat Ren Signer&quot;  -reqexts SAN  -extensions SAN  -config &lt;(cat /etc/pki/tls/openssl.cnf  &lt;(printf &#x27;[SAN]\nbasicConstraints=critical, CA:TRUE\nkeyUsage=keyCertSign, cRLSign, digitalSignature&#x27;))</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>6.2.2 创建key，其中红色部分替换为当前quay域名:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># openssl genrsa -out /etc/crts/cert.key 2048</span><br><span class="line"># openssl req -new -sha256 -key /etc/crts/cert.key -subj &quot;/O=Local Cert/CN=&lt;font color=red&gt;quay.linuxone.in&lt;/font&gt;&quot; -reqexts SAN  -config &lt;(cat /etc/pki/tls/openssl.cnf  &lt;(printf &quot;\n[SAN]\nsubjectAltName=DNS:&lt;font color=red&gt;quay.linuxone.in&lt;/font&gt;\nbasicConstraints=critical, CA:FALSE\nkeyUsage=digitalSignature, keyEncipherment, keyAgreement, dataEncipherment\nextendedKeyUsage=serverAuth&quot;)) -out /etc/crts/cert.csr</span><br><span class="line"># openssl x509 -req -sha256  -extfile &lt;(printf &quot;subjectAltName=DNS:&lt;font color=red&gt;quay.linuxone.in&lt;/font&gt;\nbasicConstraints=critical, CA:FALSE\nkeyUsage=digitalSignature, keyEncipherment, keyAgreement, dataEncipherment\nextendedKeyUsage=serverAuth&quot;)  -days 3650  -in /etc/crts/cert.csr  -CA /etc/crts/cert.ca.crt  -CAkey /etc/crts/cert.ca.key  -CAcreateserial -out /etc/crts/cert.crt</span><br><span class="line"># openssl x509 -in /etc/crts/cert.crt -text</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>6.2.3. 将证书移动到以下目录并信任:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cp cert.ca.key  /etc/pki/ca-trust/source/anchors/</span><br><span class="line"># update-ca-trust extract&lt;/code&gt;&lt;/pre&gt;&lt;/html&gt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="7">
+<li>配置quay</li>
+</ol>
+<ul>
+<li>7.1 启动quay config 容器<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman run --rm -it --name quay_config -p 8080:8080 -p 443:8443  registry.redhat.io/quay/quay-rhel8:v3.4.1 config secret  </span><br></pre></td></tr></table></figure>
+<img src="/images/22411/8.png" alt="22-411-8"></li>
+<li>7.2 访问8080端口，用户名:<code>quayconfig</code>，密码:<code>secret</code>，进入配置页面<br><img src="/images/22411/9.png" alt="22-411-9"><ul>
+<li>7.2.1 配置<code>Server Configuration</code><br><img src="/images/22411/10.png" alt="22-411-10"><ol>
+<li>填写quay fqdn</li>
+<li>选择为 <code>Red Hat Quay handles TLS</code></li>
+<li>选择 <code>cert.crt</code> 文件</li>
+<li>选择 <code>cert.key</code> 文件</li>
+</ol>
+</li>
+<li>7.2.2 配置<code>Database</code><br><img src="/images/22411/11.png" alt="22-411-11"><ol>
+<li>选择postgres</li>
+<li>Sever 配置为当前quay主机fqdn</li>
+<li>name配置为<code>4.1</code>中<code>POSTGRESQL_USER</code></li>
+<li>密码配置为<code>4.1</code>中<code>POSTGRESQL_PASSWORD</code></li>
+<li>数据库名配置为<code>4.1</code>中<code>POSTGRESQL_DATABASE</code></li>
+</ol>
+</li>
+<li>7.2.3 配置<code>Redis</code><br><img src="/images/22411/12.png" alt="22-411-12"><ol>
+<li>容器启动主机的fqdn</li>
+<li>密码为<code>5</code>中<code>REDIS_PASSWORD</code></li>
+</ol>
+</li>
+<li>7.2.4 配置 <code>Registry Storage</code><br><img src="/images/22411/13.png" alt="22-411-13"><ol>
+<li>可以配置为本地存储，选择<code>Locally mounted directory</code></li>
+<li>配置目录请记住，默认为<code>/datastorage/registry</code></li>
+</ol>
+</li>
+<li>7.2.5 <code>Access Settings</code>配置超级用户，该步骤请于后续执行<br><img src="/images/22411/14.png" alt="22-411-14"><ol>
+<li>填写用户名</li>
+<li>点击<code>add</code> 添加</li>
+</ol>
+</li>
+<li>7.2.6 基本配置好后，点击<code>Validate Configuration Changes</code>，下载 quay-config.tar.gz 并解压到 <code>$QUAY/config</code> 目录中<br><img src="/images/22411/15.png" alt="22-411-15"></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="8">
+<li>启动quay<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman run -d --rm -p 80:8080 -p 443:8443     --name=quay    -v $QUAY/config:/conf/stack:Z    -v $QUAY/storage:/datastorage:Z    registry.redhat.io/quay/quay-rhel8:v3.6.3</span><br></pre></td></tr></table></figure></li>
+</ol>
+<ul>
+<li>8.1 启动后点击 <code>Create Account</code> 创建用户，例<code>quayadmin</code>，密码为<code>password</code><br><img src="/images/22411/16.png" alt="22-411-16"></li>
+<li>8.2 创建完成用户后，关闭该容器<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman rm -f quay</span><br></pre></td></tr></table></figure></li>
+<li>8.3 重新执行第7步，包括<code>7.2.5</code>，配置<code>quayadmin</code>为超级用户，配置完成后下载 quay-config.tar.gz，并覆盖之前<code>$QUAY/config</code> 目录中内容</li>
+<li>8.4 再次启动quay，使用quayadmin登录</li>
+</ul>
+</li>
+<li><ol start="9">
+<li>配置podman信任本地quay</li>
+</ol>
+<ul>
+<li>9.1 将ca证书复制到对应目录，如果不存在，则创建<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cp /etc/crts/cert.ca.crt /etc/containers/certs.d/quay.linuxone.in/cert.ca.crt</span><br></pre></td></tr></table></figure></li>
+<li>9.2 创建完成后，信任该证书<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># update-ca-trust extract</span><br></pre></td></tr></table></figure></li>
+<li>9.3 测试登录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman login quay.linuxone.in</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="10">
+<li>配置容器重启后依旧生效</li>
+</ol>
+<ul>
+<li>10.1 podman自动生成service文件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># podman generate systemd --new --files --name redis</span><br><span class="line"># podman generate systemd --new --files --name postgresql-quay</span><br><span class="line"># podman generate systemd --new --files --name quay</span><br></pre></td></tr></table></figure></li>
+<li>10.2 将service文件复制到指定目录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># cp -Z container-redis.service /usr/lib/systemd/system</span><br><span class="line"># cp -Z container-postgresql-quay.service /usr/lib/systemd/system</span><br><span class="line"># cp -Z container-quay.service /usr/lib/systemd/system</span><br></pre></td></tr></table></figure></li>
+<li>10.3 使用<code>systemd</code>的方式进行管理<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># systemctl daemon-reload </span><br><span class="line"># systemctl enable --now container-redis.service</span><br><span class="line"># systemctl enable --now container-postgresql-quay.service</span><br><span class="line"># systemctl enable --now container-quay.service</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="11">
+<li>配置容器镜像漏洞扫描服务<code>Clair</code></li>
+</ol>
+<ul>
+<li><p>11.1 创建<code>Clair</code>容器所需的目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mkdir -p $QUAY/postgres-clairv4/</span><br></pre></td></tr></table></figure></li>
+<li><p>11.2 启动 <code>Clair</code> 所需单独使用的 postgresql 数据库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman run -d --rm --name postgresql-clairv4   -e POSTGRESQL_USER=clairuser   -e POSTGRESQL_PASSWORD=clairpass   -e POSTGRESQL_DATABASE=clair   -e POSTGRESQL_ADMIN_PASSWORD=adminpass   -p 5433:5432   -v $QUAY/postgres-clairv4:/var/lib/pgsql/data:Z   registry.redhat.io/rhel8/postgresql-10:1</span><br></pre></td></tr></table></figure></li>
+<li><p>11.3 为<code>postgresql</code> 添加 <code>Clair</code> 所需的数据库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman exec -it postgresql-clairv4 /bin/bash -c &#x27;echo &quot;CREATE EXTENSION IF NOT EXISTS \&quot;uuid-ossp\&quot;&quot; | psql -d clair -U postgres&#x27;</span><br></pre></td></tr></table></figure></li>
+<li><p>11.4 启动 quay 配置容器，额外进行以下配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman run --rm -it --name quay_config   -p 80:8080 -p 443:8443   -v $QUAY/config:/conf/stack:Z   registry.redhat.io/quay/quay-rhel8:v3.6.4 config secret</span><br></pre></td></tr></table></figure>
+<p>在配置页面进行以下配置并保存配置文件 <code>quay-confg.tar.gz</code><br><img src="/images/22411/18.png" alt="22-411-18"></p>
+</li>
+<li><p>将对应配置解压到<code>$QUAY/config</code>目录，然后配置 <code>Clair</code> 配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/clairv4/config/config.yaml</span><br><span class="line">http_listen_addr: :8081</span><br><span class="line">introspection_addr: :8089</span><br><span class="line">log_level: debug</span><br><span class="line">indexer:</span><br><span class="line">  connstring: host=quay.linuxone.in port=5433 dbname=clair user=clairuser password=clairpass sslmode=disable   &lt;&lt;&lt;</span><br><span class="line">  scanlock_retry: 10</span><br><span class="line">  layer_scan_concurrency: 5</span><br><span class="line">  migrations: true</span><br><span class="line">matcher:</span><br><span class="line">  connstring: host=quay.linuxone.in port=5433 dbname=clair user=clairuser password=clairpass sslmode=disable   &lt;&lt;&lt;</span><br><span class="line">  max_conn_pool: 100</span><br><span class="line">  run: &quot;&quot;</span><br><span class="line">  migrations: true</span><br><span class="line">  indexer_addr: clair-indexer</span><br><span class="line">notifier:</span><br><span class="line">  connstring: host=quay.linuxone.in port=5433 dbname=clair user=clairuser password=clairpass sslmode=disable   &lt;&lt;&lt;</span><br><span class="line">  delivery_interval: 1m</span><br><span class="line">  poll_interval: 5m</span><br><span class="line">  migrations: true</span><br><span class="line">auth:</span><br><span class="line">  psk:</span><br><span class="line">    key: &quot;aDFiMmY2ajk4NjI1OQ==&quot;   &lt;&lt;&lt;</span><br><span class="line">    iss: [&quot;quay&quot;]</span><br><span class="line"># tracing and metrics</span><br><span class="line">trace:</span><br><span class="line">  name: &quot;jaeger&quot;</span><br><span class="line">  probability: 1</span><br><span class="line">  jaeger:</span><br><span class="line">    agent_endpoint: &quot;localhost:6831&quot;</span><br><span class="line">    service_name: &quot;clair&quot;</span><br><span class="line">metrics:</span><br><span class="line">  name: &quot;prometheus&quot;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>11.5 启动<code>Clair</code> 容器</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman run -d --rm --name clairv4   -p 8081:8081 -p 8089:8089   -e CLAIR_CONF=/clair/config.yaml -e CLAIR_MODE=combo   -v /etc/clairv4/config:/clair:Z   registry.redhat.io/quay/clair-rhel8:v3.6.4</span><br></pre></td></tr></table></figure></li>
+<li><p>11.6 然后启动 quay 容器</p>
+</li>
+<li><p>11.7 由于 quay 容器依赖与<code>Clair</code>容器启动后启动，进行以下配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"># cat /usr/lib/systemd/system/container-quay.service</span><br><span class="line">[Unit]</span><br><span class="line">Description=Podman container-quay.service</span><br><span class="line">Documentation=man:podman-generate-systemd(1)</span><br><span class="line">Wants=network.target</span><br><span class="line">After=container-clairv4.service   &lt;&lt;&lt;</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">Environment=PODMAN_SYSTEMD_UNIT=%n</span><br><span class="line">Restart=on-failure</span><br><span class="line">RestartSec=30</span><br><span class="line">ExecStartPre=/bin/rm -f %t/container-quay.pid %t/container-quay.ctr-id</span><br><span class="line">ExecStart=/usr/bin/podman run --conmon-pidfile %t/container-quay.pid --cidfile %t/container-quay.ctr-id --cgroups=no-conmon -d --rm -p 8080:8080 --name=quay -v /home/user1/quay/config:/conf/stack:Z -v /home/user1/quay/storage:/datastorage:Z registry.redhat.io/quay/quay-rhel8:v3.4.0</span><br><span class="line">ExecStop=/usr/bin/podman stop --ignore --cidfile %t/container-quay.ctr-id -t 10</span><br><span class="line">ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/container-quay.ctr-id</span><br><span class="line">PIDFile=%t/container-quay.pid</span><br><span class="line">KillMode=none</span><br><span class="line">Type=forking</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.target default.target</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>11.8 关闭漏洞扫描的原因为，当前主机为我自己家用nas 4核心，开启漏洞扫描后负载为：<br><img src="/images/22411/19.png" alt="22-411-18"><br>根本负担不起，所以就不开启此服务了。</p>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h4 id="一些遇到的小问题"><a href="#一些遇到的小问题" class="headerlink" title="一些遇到的小问题"></a>一些遇到的小问题</h4><ol>
+<li><p>不想进行安全验证，则添加<code>--tls-verify=false</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman login quay.linuxone.in --tls-verify=false</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>镜像被签名，无法推送到本地quay，则添加<code>--remove-signatures</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># podman push --remove-signatures quay.linuxone.in/quay/postgresql-10:1</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置podman对于docker.io加速</p>
+</li>
+</ol>
+<ul>
+<li>3.1 已经有阿里云镜像加速器</li>
+<li>3.2 对应修改<code>registry.conf</code>文件<html><pre><code># /etc/containers/registries.conf
+unqualified-search-registries = ["registry.fedoraproject.org", "registry.access.redhat.com", "registry.centos.org", <font color=red>"docker.io"</font>]
+<font color=red>[[registry]]
+prefix = "docker.io"
+location = "xacs4bss.mirror.aliyuncs.com"</font> </code></pre></html></li>
+</ul>
+<ol start="4">
+<li>本地配置https本地镜像库的证书<br>将ca证书复制到以下以镜像库<code>url</code>命令的目录，如果不存在，则创建</li>
+</ol>
+<html><pre><code># cp /etc/crts/cert.ca.crt /etc/containers/certs.d/<font color=red>quay.linuxone.in</font>/cert.ca.crt</code></pre></html>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/registry/" rel="tag"># registry</a>
+              <a href="/tags/container/" rel="tag"># container</a>
+              <a href="/tags/quay/" rel="tag"># quay</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/11/openwrt%E9%85%8D%E7%BD%AEssr/" rel="prev" title="openwrt配置ssr">
+      <i class="fa fa-chevron-left"></i> openwrt配置ssr
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/04/12/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%B8%80%EF%BC%89/" rel="next" title="glusterfs-管理员全记录：<font color=red>一</font>">
+      glusterfs-管理员全记录：<font color=red>一</font> <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%90%AD%E5%BB%BA%E5%86%85%E9%83%A8quay%E9%95%9C%E5%83%8F%E5%BA%93"><span class="nav-number">1.</span> <span class="nav-text">搭建内部quay镜像库</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%89%8D%E6%8F%90"><span class="nav-number">1.0.0.1.</span> <span class="nav-text">前提</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E5%AE%89%E8%A3%85"><span class="nav-number">1.0.0.2.</span> <span class="nav-text">开始安装</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E9%81%87%E5%88%B0%E7%9A%84%E5%B0%8F%E9%97%AE%E9%A2%98"><span class="nav-number">1.0.0.3.</span> <span class="nav-text">一些遇到的小问题</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

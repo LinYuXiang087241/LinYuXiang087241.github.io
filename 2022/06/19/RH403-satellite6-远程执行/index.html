@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="红帽 Satellite6.10 调配主机  **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RH403_satellite6-主机调配_二">
+<meta property="og:url" content="http://example.com/2022/06/19/RH403-satellite6-%E8%BF%9C%E7%A8%8B%E6%89%A7%E8%A1%8C/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="红帽 Satellite6.10 调配主机  **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22619/1.png">
+<meta property="og:image" content="http://example.com/images/22619/8.png">
+<meta property="og:image" content="http://example.com/images/22619/9.png">
+<meta property="og:image" content="http://example.com/images/22619/10.png">
+<meta property="og:image" content="http://example.com/images/22619/11.png">
+<meta property="og:image" content="http://example.com/images/22619/12.png">
+<meta property="og:image" content="http://example.com/images/22619/13.png">
+<meta property="og:image" content="http://example.com/images/22619/14.png">
+<meta property="og:image" content="http://example.com/images/22619/15.png">
+<meta property="og:image" content="http://example.com/images/22619/16.png">
+<meta property="og:image" content="http://example.com/images/22619/17.png">
+<meta property="og:image" content="http://example.com/images/22619/18.png">
+<meta property="og:image" content="http://example.com/images/22619/19.png">
+<meta property="og:image" content="http://example.com/images/22619/20.png">
+<meta property="og:image" content="http://example.com/images/22619/21.png">
+<meta property="og:image" content="http://example.com/images/22619/22.png">
+<meta property="og:image" content="http://example.com/images/22619/23.png">
+<meta property="og:image" content="http://example.com/images/22619/24.png">
+<meta property="og:image" content="http://example.com/images/22619/25.png">
+<meta property="og:image" content="http://example.com/images/22619/26.png">
+<meta property="og:image" content="http://example.com/images/22619/27.png">
+<meta property="og:image" content="http://example.com/images/22619/28.png">
+<meta property="og:image" content="http://example.com/images/22619/29.png">
+<meta property="og:image" content="http://example.com/images/22619/30.png">
+<meta property="og:image" content="http://example.com/images/22619/31.png">
+<meta property="og:image" content="http://example.com/images/22619/32.png">
+<meta property="og:image" content="http://example.com/images/22619/33.png">
+<meta property="og:image" content="http://example.com/images/22619/34.png">
+<meta property="article:published_time" content="2022-06-19T23:30:19.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="RH403_Satellite6">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22619/1.png">
+
+<link rel="canonical" href="http://example.com/2022/06/19/RH403-satellite6-%E8%BF%9C%E7%A8%8B%E6%89%A7%E8%A1%8C/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>RH403_satellite6-主机调配_二 | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/19/RH403-satellite6-%E8%BF%9C%E7%A8%8B%E6%89%A7%E8%A1%8C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          RH403_satellite6-主机调配_二
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-19 23:30:19" itemprop="dateCreated datePublished" datetime="2022-06-19T23:30:19+00:00">2022-06-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/usage/" itemprop="url" rel="index"><span itemprop="name">usage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22619/1.png" alt="22-619-g1"></p>
+<html><pre><code> 红帽 Satellite6.10
+调配主机 </code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+
+<h3 id="satellite-调配主机（pxe）"><a href="#satellite-调配主机（pxe）" class="headerlink" title="satellite 调配主机（pxe）"></a>satellite 调配主机（pxe）</h3><ul>
+<li><ol>
+<li>安装额外 capsule2 用于提供 pxe 服务(capsule2.linuxone.in)</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>提前同步 kictstart 存储库，发布并推送到 capsule 所在的 lifecycle env</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>配置 Hosts &gt; Provisioning Templates 配置模板<br><img src="/images/22619/8.png" alt="22-619-g8"></li>
+</ol>
+<ul>
+<li>3.1 点击 Kickstart default PXELinux<ul>
+<li>Associtation 包含需要安装的操作系统<br><img src="/images/22619/9.png" alt="22-619-g9"></li>
+<li>Locations 保持和用于调配 capsule 一致，我环境中 capsule2 所属 location 为 loc，确认后点击 <code>submit</code><br><img src="/images/22619/10.png" alt="22-619-g10"></li>
+</ul>
+</li>
+<li>3.2 点击  Kictstart default 进行与 <code>3.1</code>相同的配置</li>
+</ul>
+</li>
+<li><ol start="4">
+<li>确认分区表在当前位置 loc 可用</li>
+</ol>
+<ul>
+<li>4.1 Hosts &gt; Partition Tables 点击 Kickstart default<br><img src="/images/22619/11.png" alt="22-619-g11"></li>
+<li>4.2 点击 Locations ，确保 loc 位置已经配置<br><img src="/images/22619/12.png" alt="22-619-g12"></li>
+</ul>
+</li>
+<li><ol start="5">
+<li>确认希望安装的操作系统引用正确的调配模板和分区表</li>
+</ol>
+<ul>
+<li>5.1 Hosts &gt; Operating Systems 点击需要安装操作系统，我测试的为 rhel8.1<br><img src="/images/22619/13.png" alt="22-619-g13"></li>
+<li>5.2 确保 Partition Table 标签下已经选中 Kictstart default<br><img src="/images/22619/14.png" alt="22-619-g14"></li>
+<li>5.3 确保 Templates 下 PXELinux template 已设为 Kickstart default PXELinux ，<br>并且 Provisioning template 已设为 Kickstart default ， 并点击 submit 提交<br><img src="/images/22619/15.png" alt="22-619-g15"></li>
+</ul>
+</li>
+<li><ol start="6">
+<li>配置调配网络</li>
+</ol>
+<ul>
+<li><p>6.1 我测试环境中，capsule2 的信息如下，并创建 ks.linuxone.in 的域名用于调配</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DNS服务网卡</td>
+<td>ens33（vmware 虚拟机默认网卡名）</td>
+</tr>
+<tr>
+<td>DNS 转发</td>
+<td>192.168.31.1</td>
+</tr>
+<tr>
+<td>DNS ZONE</td>
+<td>ks.linuxone.in</td>
+</tr>
+<tr>
+<td>DNS reverse</td>
+<td>31.168.192.in-addr.arpa</td>
+</tr>
+<tr>
+<td>DHCP服务网卡</td>
+<td>ens33（vmware 虚拟机默认网卡名）</td>
+</tr>
+<tr>
+<td>DHCP范围</td>
+<td>192.168.31.20 - 192.168.31.35</td>
+</tr>
+<tr>
+<td>DHCP主机</td>
+<td>capsule2的ip 192.168.31.72</td>
+</tr>
+<tr>
+<td>DHCP网关</td>
+<td>192.168.31.1</td>
+</tr>
+</tbody></table>
+<p>在 capsule2 执行以下命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">#  satellite-installer --scenario capsule \</span><br><span class="line"> --foreman-proxy-dns true \</span><br><span class="line"> --foreman-proxy-dns-interface ens33 \</span><br><span class="line"> --foreman-proxy-dns-forwarders 192.168.31.1 \</span><br><span class="line"> --foreman-proxy-dns-zone ks.linuxone.in \</span><br><span class="line"> --foreman-proxy-dns-reverse 31.168.192.in-addr.arpa \</span><br><span class="line"> --foreman-proxy-dhcp true \</span><br><span class="line"> --foreman-proxy-dhcp-interface ens33 \</span><br><span class="line"> --foreman-proxy-dhcp-range &quot;192.168.31.20 192.168.31.35&quot; \</span><br><span class="line"> --foreman-proxy-dhcp-nameservers 192.168.31.72 \</span><br><span class="line"> --foreman-proxy-dhcp-gateway 192.168.31.1 \</span><br><span class="line"> --foreman-proxy-tftp true</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>6.2 确认 capsule2 的 DNS、DHCP、TFTP 功能已经启用 Infrastructure &gt; capsules &gt; capsule2.linuxone.in 在 Active features 查看，如果没有请刷新尝试<br><img src="/images/22619/16.png" alt="22-619-g16"></p>
+</li>
+</ul>
+</li>
+<li><ol start="7">
+<li>创建 ks.linuxone.in DNS 域名</li>
+</ol>
+<ul>
+<li>7.1 Infrastructure &gt; Domains 点击 Create Domain<ul>
+<li><ol>
+<li>DNS Domain 输入 ks.linuxone.in</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>DNS Capsule 输入 capsule2.linuxone.in<br><img src="/images/22619/17.png" alt="22-619-g17"></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>确认位置 loc 已经关联<br><img src="/images/22619/18.png" alt="22-619-g18"></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>确认组织 org 已经关联</li>
+</ol>
+</li>
+<li><ol start="5">
+<li>点击 <code>submit</code> 提交<br><img src="/images/22619/19.png" alt="22-619-g19"></li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="8">
+<li>创建 kickstart 专用子网，子网名 ks date center</li>
+</ol>
+<ul>
+<li>8.1 Infrastructure &gt; Capsules 点击 capsule2.linuxone.in<br><img src="/images/22619/20.png" alt="22-619-g20"></li>
+<li>8.2 点击 Actions 并选择 Import IPv4 subnets<br><img src="/images/22619/21.png" alt="22-619-g21"></li>
+<li>8.3 子网信息如下，并点击 <code>submit</code> 提交<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Name</td>
+<td>ks date center</td>
+</tr>
+<tr>
+<td>Primary DNS Server</td>
+<td>192.168.31.72</td>
+</tr>
+<tr>
+<td>IPAM</td>
+<td>DHCP</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+</li>
+<li><ol start="9">
+<li>修改子网配置</li>
+</ol>
+<ul>
+<li>9.1 Infrastructure &gt; Subnets 点击 ks date center ，Subnet 标签根据之前 DHCP 时的规划填写<br><img src="/images/22619/22.png" alt="22-619-g22"></li>
+<li>9.2 Domains 标签下，将该子网与 Domain ks.linuxone.in 关联<br><img src="/images/22619/23.png" alt="22-619-g23"></li>
+<li>9.2 capsules 标签下，将所有可选项均修改为 capsule2.linuxone.in<br><img src="/images/22619/24.png" alt="22-619-g24"></li>
+<li>9.3 Locations 与 Organizations 标签，请选择与 capsule2 相同的内容</li>
+</ul>
+</li>
+<li><ol start="10">
+<li>创建主机组</li>
+</ol>
+<ul>
+<li>10.1 Configure &gt; host groups 点击 Create Host Groups 内容以下<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Name</td>
+<td>ks host group (自定义即可)</td>
+</tr>
+<tr>
+<td>Lifecycle Env</td>
+<td>kickstart(由之前创建)</td>
+</tr>
+<tr>
+<td>Content View</td>
+<td>kictstart(由之前创建)</td>
+</tr>
+<tr>
+<td>Content Source</td>
+<td>capsule2.linuxone.in</td>
+</tr>
+<tr>
+<td><img src="/images/22619/25.png" alt="22-619-g25"></td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+<li>10.2 Network 选项卡，将 Domain 配置为 ks.linuxone.in ，ipv4 subnet 配置为 ks date center<br><img src="/images/22619/26.png" alt="22-619-g26"></li>
+<li>10.3 Operating System 标签卡进行如下配置<br><img src="/images/22619/27.png" alt="22-619-g27"></li>
+<li>10.4 Locations 与 Organizations 标签，请选择与 capsule2 相同的内容，点击 <code>submit</code> 提交</li>
+</ul>
+</li>
+<li><ol start="11">
+<li>调配主机，pxe 创建 rh8u1.ks.linuxone.in</li>
+</ol>
+<ul>
+<li>11.1 Hosts &gt; Create host 创建以下信息<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>数值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Name</td>
+<td>rh8u1</td>
+</tr>
+<tr>
+<td>Host Group</td>
+<td>ks host group</td>
+</tr>
+<tr>
+<td>Organization</td>
+<td>org</td>
+</tr>
+<tr>
+<td>Location</td>
+<td>loc</td>
+</tr>
+<tr>
+<td><img src="/images/22619/28.png" alt="22-619-g28"></td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+<li>11.2 Operating Systemt 标签下，更改 root 密码为 redhat123 ，点击 resolve 可以验证 pxe 配置<br><img src="/images/22619/29.png" alt="22-619-g29"></li>
+<li>11.3 配置 pxe 网卡<ul>
+<li><ol>
+<li>Interfaces 标签，点击 Edit<br><img src="/images/22619/30.png" alt="22-619-g30"></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>其中 mac address 填写网卡 mac 地址，我使用的 vmware 虚拟机，则额外勾选 virtual NIC<br><img src="/images/22619/31.png" alt="22-619-g31"></li>
+</ol>
+</li>
+</ul>
+</li>
+<li>11.4 配置完成，点击 <code>submit</code> 提交<br><img src="/images/22619/32.png" alt="22-619-g32"></li>
+<li>11.5 Vmware 启动虚拟机进行 pxe 自动安装<br><img src="/images/22619/33.png" alt="22-619-g33"></li>
+<li>11.6 安装完成，检查 hostname 与 redhat-release<br><img src="/images/22619/34.png" alt="22-619-g34"></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/RH403-Satellite6/" rel="tag"># RH403_Satellite6</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/06/18/RH403-satellite6-%E9%83%A8%E7%BD%B2%E5%8D%87%E7%BA%A7/" rel="prev" title="RH403_satellite6_部署升级_一">
+      <i class="fa fa-chevron-left"></i> RH403_satellite6_部署升级_一
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/07/12/RH403-satellite6-%E8%BF%81%E7%A7%BBrhel7sat%E5%88%B0%E6%96%B0%E5%AE%89%E8%A3%85rhel8sat/" rel="next" title="RH403-satellite6-版本迁移_三">
+      RH403-satellite6-版本迁移_三 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#satellite-%E8%B0%83%E9%85%8D%E4%B8%BB%E6%9C%BA%EF%BC%88pxe%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">satellite 调配主机（pxe）</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

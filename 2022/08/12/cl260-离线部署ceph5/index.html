@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="红帽 Ceph5 离线部署 镜像仓库选用quay 使用 cephadm 进行部署  **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cl260-离线部署ceph5">
+<meta property="og:url" content="http://example.com/2022/08/12/cl260-%E7%A6%BB%E7%BA%BF%E9%83%A8%E7%BD%B2ceph5/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="红帽 Ceph5 离线部署 镜像仓库选用quay 使用 cephadm 进行部署  **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22812/1.png">
+<meta property="og:image" content="http://example.com/images/22812/2.png">
+<meta property="og:image" content="http://example.com/images/22812/3.png">
+<meta property="og:image" content="http://example.com/images/22812/4.png">
+<meta property="og:image" content="http://example.com/images/22812/5.png">
+<meta property="og:image" content="http://example.com/images/22812/6.png">
+<meta property="og:image" content="http://example.com/images/22812/7.png">
+<meta property="og:image" content="http://example.com/images/22812/8.png">
+<meta property="article:published_time" content="2022-08-12T23:25:36.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="CL260_ceph">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22812/1.png">
+
+<link rel="canonical" href="http://example.com/2022/08/12/cl260-%E7%A6%BB%E7%BA%BF%E9%83%A8%E7%BD%B2ceph5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>cl260-离线部署ceph5 | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/08/12/cl260-%E7%A6%BB%E7%BA%BF%E9%83%A8%E7%BD%B2ceph5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          cl260-离线部署ceph5
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-08-12 23:25:36" itemprop="dateCreated datePublished" datetime="2022-08-12T23:25:36+00:00">2022-08-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/installation/" itemprop="url" rel="index"><span itemprop="name">installation</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22812/1.png" alt="22-812-g1"></p>
+<html><pre><code> 红帽 Ceph5 离线部署
+镜像仓库选用quay 使用 cephadm 进行部署 </code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+
+<hr>
+<h2 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h2><ul>
+<li>Ceph5 环境如下<table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>IP</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>quay.linuxone.in</td>
+<td>192.168.31.250</td>
+<td>registry</td>
+</tr>
+<tr>
+<td>ceph5n0.linuxone.in</td>
+<td>192.168.31.50</td>
+<td>_admin mon mgr prometheus</td>
+</tr>
+<tr>
+<td>ceph5n1.linuxone.in</td>
+<td>192.168.31.51</td>
+<td>mon osd mgr</td>
+</tr>
+<tr>
+<td>ceph5n2.linuxone.in</td>
+<td>192.168.31.52</td>
+<td>mon osd</td>
+</tr>
+<tr>
+<td>ceph5n3.linuxone.in</td>
+<td>192.168.31.53</td>
+<td>mon osd _admin</td>
+</tr>
+<tr>
+<td>所有主机都有 sdb sdc sdd 三块硬盘用于创建 osd</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<hr>
+<h2 id="Quay-构建离线-registry"><a href="#Quay-构建离线-registry" class="headerlink" title="Quay 构建离线 registry"></a>Quay 构建离线 registry</h2><ul>
+<li><ol>
+<li>Quay 的搭建过程请参考之前文档</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>将所需的 image 拉到本地，并更改tag 上传至 quay</li>
+</ol>
+<ul>
+<li><p>2.1 将镜像拉到本地</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">podman pull registry.redhat.io/rhceph/keepalived-rhel8:latest</span><br><span class="line">podman pull registry.redhat.io/rhceph/rhceph-haproxy-rhel8:latest</span><br><span class="line">podman pull registry.redhat.io/rhceph/rhceph-5-rhel8:latest</span><br><span class="line">podman pull registry.redhat.io/rhceph/rhceph-5-dashboard-rhel8:latest</span><br><span class="line">podman pull registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.6</span><br><span class="line">podman pull registry.redhat.io/openshift4/ose-prometheus-alertmanager:v4.6</span><br><span class="line">podman pull registry.redhat.io/rhceph/snmp-notifier-rhel8:latest</span><br><span class="line">podman pull registry.redhat.io/openshift4/ose-prometheus:v4.6</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2 为镜像更改 tag</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">podman tag registry.redhat.io/rhceph/keepalived-rhel8:latest quay.linuxone.in/rhceph/keepalived-rhel8:latest</span><br><span class="line">podman tag registry.redhat.io/rhceph/rhceph-haproxy-rhel8:latest quay.linuxone.in/rhceph/rhceph-haproxy-rhel8:latest</span><br><span class="line">podman tag registry.redhat.io/rhceph/rhceph-5-rhel8:latest quay.linuxone.in/rhceph/rhceph-5-rhel8:latest</span><br><span class="line">podman tag registry.redhat.io/rhceph/rhceph-5-dashboard-rhel8:latest quay.linuxone.in/rhceph/rhceph-5-dashboard-rhel8:latest</span><br><span class="line">podman tag registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.6 quay.linuxone.in/openshift4/ose-prometheus-node-exporter:v4.6</span><br><span class="line">podman tag registry.redhat.io/openshift4/ose-prometheus-alertmanager:v4.6 quay.linuxone.in/openshift4/ose-prometheus-alertmanager:v4.6</span><br><span class="line">podman tag registry.redhat.io/rhceph/snmp-notifier-rhel8:latest quay.linuxone.in/rhceph/snmp-notifier-rhel8:latest</span><br><span class="line">podman tag registry.redhat.io/openshift4/ose-prometheus:v4.6 quay.linuxone.in/openshift4/ose-prometheus:v4.6</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>2.3 将镜像移除签名后上传至 quay</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">podman push quay.linuxone.in/rhceph/keepalived-rhel8:latest --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/rhceph/rhceph-haproxy-rhel8:latest --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/rhceph/rhceph-5-rhel8:latest --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/rhceph/rhceph-5-dashboard-rhel8:latest --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/openshift4/ose-prometheus-node-exporter:v4.6 --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/openshift4/ose-prometheus-alertmanager:v4.6 --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/rhceph/snmp-notifier-rhel8:latest --remove-signatures</span><br><span class="line">podman push quay.linuxone.in/openshift4/ose-prometheus:v4.6 --remove-signatures</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="预先配置各个ceph节点"><a href="#预先配置各个ceph节点" class="headerlink" title="预先配置各个ceph节点"></a>预先配置各个ceph节点</h2><ul>
+<li><ol>
+<li>预先同步以下 repo 并提供给内网 ceph 节点<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rhceph-5-tools-for-rhel-8-x86_64-rpms</span><br><span class="line">ansible-2.9-for-rhel-8-x86_64-rpms</span><br><span class="line">rhel-8-for-x86_64-baseos-rpms</span><br><span class="line">rhel-8-for-x86_64-appstream-rpms</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>安装 cephadm-ansible<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf install cephadm-ansible</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>以<code>ceph5n0</code> 为 <code>bootstrap</code> 节点进行点火安装 ceph。配置 ssh 密钥<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># ssh-keygen</span><br><span class="line"># ssh-copy-id root@ceph5n1.linuxone.in</span><br><span class="line"># ssh-copy-id root@ceph5n0.linuxone.in</span><br><span class="line"># ssh-copy-id root@ceph5n2.linuxone.in</span><br><span class="line"># ssh-copy-id root@ceph5n3.linuxone.in</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>运行预检查 playbook</li>
+</ol>
+<ul>
+<li><p>4.1 配置 inventory</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># cd /usr/share/cephadm-ansible/</span><br><span class="line"># cat hosts</span><br><span class="line">ceph5n1.linuxone.in</span><br><span class="line">ceph5n2.linuxone.in</span><br><span class="line">ceph5n3.linuxone.in</span><br><span class="line">ceph5n0.linuxone.in</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>4.2 运行预检查 playbook</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cd /usr/share/cephadm-ansible/</span><br><span class="line"># ansible-playbook  -i hosts cephadm-preflight.yml  --extra-vars &quot;ceph_origin=&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="5">
+<li>配置 <code>ceph</code> 使用本地镜像<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># ceph config set mgr mgr/cephadm/container_image_prometheus quay.linuxone.in/openshift4/ose-prometheus</span><br><span class="line"># ceph config set mgr mgr/cephadm/container_image_grafana quay.linuxone.in/rhceph/rhceph-4-dashboard-rhel8</span><br><span class="line"># ceph config set mgr mgr/cephadm/container_image_alertmanager quay.linuxone.in/openshift4/ose-prometheus-alertmanager</span><br><span class="line"># ceph config set mgr mgr/cephadm/container_image_node_exporter quay.linuxone.in/openshift4/ose-prometheus-node-exporter</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>配置 ceph 使用本地 quay</li>
+</ol>
+<ul>
+<li>6.1 将 quay 的证书拷贝到各个 ceph 节点的指定目录(quay证书为创建时自签名ca)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># mkdir /etc/containers/certs.d/quay.linuxone.in/</span><br><span class="line">从quay节点复制证书：</span><br><span class="line"># scp cert.ca.crt root@192.168.31.50:/etc/containers/certs.d/quay.linuxone.in/</span><br></pre></td></tr></table></figure></li>
+<li>6.2 创建 quay 用户登录 <code>json</code> 文件，我使用的用户是 <code>quayadmin</code><ul>
+<li>6.2.1 登录 quay 页面 点击 <code>account Settings</code><br><img src="/images/22812/2.png" alt="22-812-g2"></li>
+<li>6.2.2 点击 <code>Generate Encrypted Password</code><br><img src="/images/22812/3.png" alt="22-812-g3">    </li>
+<li>6.2.3 点击 <code>Docker Configruation</code> 下载 <code>quayadmin-auth.json</code><br><img src="/images/22812/4.png" alt="22-812-g4"></li>
+<li>6.2.4 将 <code>quayadmin-auth.json</code> 文件上传至ceph各节点对应目录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># mv /etc/ceph/podman-auth.json /etc/ceph/podman-auth.json.bak</span><br><span class="line"># mv quayadmin-auth.json /etc/ceph/podman-auth.json</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="在ceph5n0安装-bootstrap-节点"><a href="#在ceph5n0安装-bootstrap-节点" class="headerlink" title="在ceph5n0安装 bootstrap 节点"></a>在<code>ceph5n0</code>安装 bootstrap 节点</h2><ul>
+<li>以下命令点火安装，配置管理端口密码为 <code>redhat</code>，并且首次登录 console 不需要重置密码<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># cephadm --image quay.linuxone.in/rhceph/rhceph-5-rhel8:latest bootstrap --mon-ip=192.168.31.50 \</span><br><span class="line">--initial-dashboard-password=redhat --dashboard-password-noupdate \</span><br><span class="line">--allow-fqdn-hostname --registry-url=quay.linuxone.in --registry-username=quayadmin --registry-password=LINyuxiang111096! \</span><br><span class="line">--yes-i-know --allow-overwrite</span><br></pre></td></tr></table></figure>
+执行以下命令后，会得到以下输出:<br><img src="/images/22812/5.png" alt="22-812-g5"><br>同时，使用红色框中命令登录管理 ceph 集群<br><img src="/images/22812/6.png" alt="22-812-g6"></li>
+</ul>
+<hr>
+<h2 id="在-bootstrap-安装-ceph-集群"><a href="#在-bootstrap-安装-ceph-集群" class="headerlink" title="在 bootstrap 安装 ceph 集群"></a>在 bootstrap 安装 ceph 集群</h2><ul>
+<li><ol>
+<li>将其他节点添加到 ceph 集群</li>
+</ol>
+<ul>
+<li>1.1 创建 ceph 密钥，并复制到集群各个节点<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># /usr/sbin/cephadm shell --fsid 9e26cb76-1a3b-11ed-8f8f-0050562d60d7 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring</span><br><span class="line">ceph: # ceph cephadm get-pub-key &gt; ~/ceph.pub</span><br><span class="line">ceph: # ssh-copy-id -f -i ~/ceph.pub root@192.168.31.51</span><br><span class="line">ceph: # ssh-copy-id -f -i ~/ceph.pub root@192.168.31.50</span><br><span class="line">ceph: # ssh-copy-id -f -i ~/ceph.pub root@192.168.31.52</span><br><span class="line">ceph: # ssh-copy-id -f -i ~/ceph.pub root@192.168.31.53</span><br></pre></td></tr></table></figure></li>
+<li>1.2 将节点添加到 ceph <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host add ceph5n1 192.168.31.51</span><br><span class="line">ceph: # ceph orch host add ceph5n2 192.168.31.52</span><br><span class="line">ceph: # ceph orch host add ceph5n3 192.168.31.53</span><br></pre></td></tr></table></figure></li>
+<li>1.3 检查节点状态信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host ls</span><br></pre></td></tr></table></figure></li>
+<li>1.4 删除集群中节点的顺序如下<ul>
+<li>1.4.1 排空该节点所有守护进程<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host drain ceph5n1</span><br></pre></td></tr></table></figure></li>
+<li>1.4.2 检查节点 osd 状态，确认 osd 停用<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch osd rm status</span><br></pre></td></tr></table></figure></li>
+<li>1.4.3 检查所有守护进程是否已经移除<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch ps ceph5n1</span><br></pre></td></tr></table></figure></li>
+<li>1.4.4 确认守护进程已经移除，删除主机<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch rm ceph5n1</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="2">
+<li>部署 mon 守护进程</li>
+</ol>
+<ul>
+<li>2.1 为所有主机创建 mon 标签<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host label add ceph5n1 mon</span><br><span class="line">ceph: # ceph orch host label add ceph5n2 mon</span><br><span class="line">ceph: # ceph orch host label add ceph5n3 mon</span><br><span class="line">ceph: # ceph orch host label add ceph5n0 mon</span><br></pre></td></tr></table></figure></li>
+<li>2.2 将所有带有 mon 标签的主机部署 mon 守护进程<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch apply mon --placement=&quot;label=mon&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="3">
+<li>为对应主机部署 mgr 守护进程</li>
+</ol>
+<ul>
+<li>3.1 为所有主机创建 mgr 标签<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host label add ceph5n1 mgr</span><br><span class="line">ceph: # ceph orch host label add ceph5n0 mgr</span><br></pre></td></tr></table></figure></li>
+<li>3.2 将所有带有 mon 标签的主机部署 mon 守护进程<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch apply mgr --placement=&quot;label=mgr&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="4">
+<li>部署 osd 守护进程<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch daemon add osd ceph5n1:/dev/sdb</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n1:/dev/sdc</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n2:/dev/sdb</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n2:/dev/sdc</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n3:/dev/sdc</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n3:/dev/sdb</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n3:/dev/sdd</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n2:/dev/sdd</span><br><span class="line">ceph: # ceph orch daemon add osd ceph5n1:/dev/sdd</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>创建新的 <code>_admin</code> 管理节点</li>
+</ol>
+<ul>
+<li>5.1 为 ceph5n3 节点添加标签<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host label add ceph5n3 _admin</span><br></pre></td></tr></table></figure></li>
+<li>5.2 移除 <code>_admin</code> 标签<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph orch host label rm ceph5n3 _admin</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="6">
+<li>部署完成检查 ceph 集群状态</li>
+</ol>
+<ul>
+<li>6.1 通过命令行检查<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ceph: # ceph -s</span><br><span class="line">ceph: # ceph health detail</span><br></pre></td></tr></table></figure>
+<img src="/images/22812/7.png" alt="22-812-g7"> </li>
+<li>6.2 通过网页查看<br><img src="/images/22812/8.png" alt="22-812-g8"></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="清除-ceph-集群"><a href="#清除-ceph-集群" class="headerlink" title="清除 ceph 集群"></a>清除 ceph 集群</h2><ul>
+<li>执行以下命令进行移除<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># ansible-playbook -i hosts cephadm-purge-cluster.yml -e fsid=a6ca415a-cde7-11eb-a41a-002590fc2544 -vvv</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h2 id="在线部署注意事项"><a href="#在线部署注意事项" class="headerlink" title="在线部署注意事项"></a>在线部署注意事项</h2><ul>
+<li><ol>
+<li>每个节点配置 registry.redhat.io 的验证文件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/podman.json </span><br><span class="line">&#123;</span><br><span class="line"> &quot;url&quot;:&quot;registry.redhat.io&quot;,</span><br><span class="line"> &quot;username&quot;:&quot;username&quot;,</span><br><span class="line"> &quot;password&quot;:&quot;password&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>使用 bootstrap 点火集群时，使用以下命令<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># cephadm bootstrap --mon-ip=192.168.31.50 \</span><br><span class="line">--initial-dashboard-password=redhat --dashboard-password-noupdate \</span><br><span class="line"> --allow-fqdn-hostname --registry-json /etc/podman.json --yes-i-know</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CL260-ceph/" rel="tag"># CL260_ceph</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/07/12/RH403-satellite6-%E8%BF%81%E7%A7%BBrhel7sat%E5%88%B0%E6%96%B0%E5%AE%89%E8%A3%85rhel8sat/" rel="prev" title="RH403-satellite6-版本迁移_三">
+      <i class="fa fa-chevron-left"></i> RH403-satellite6-版本迁移_三
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/11/10/cl260-ceph4%E9%83%A8%E7%BD%B2/" rel="next" title="cl260-ceph4部署">
+      cl260-ceph4部署 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">环境介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Quay-%E6%9E%84%E5%BB%BA%E7%A6%BB%E7%BA%BF-registry"><span class="nav-number">2.</span> <span class="nav-text">Quay 构建离线 registry</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%84%E5%85%88%E9%85%8D%E7%BD%AE%E5%90%84%E4%B8%AAceph%E8%8A%82%E7%82%B9"><span class="nav-number">3.</span> <span class="nav-text">预先配置各个ceph节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8ceph5n0%E5%AE%89%E8%A3%85-bootstrap-%E8%8A%82%E7%82%B9"><span class="nav-number">4.</span> <span class="nav-text">在ceph5n0安装 bootstrap 节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8-bootstrap-%E5%AE%89%E8%A3%85-ceph-%E9%9B%86%E7%BE%A4"><span class="nav-number">5.</span> <span class="nav-text">在 bootstrap 安装 ceph 集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B8%85%E9%99%A4-ceph-%E9%9B%86%E7%BE%A4"><span class="nav-number">6.</span> <span class="nav-text">清除 ceph 集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8%E7%BA%BF%E9%83%A8%E7%BD%B2%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">7.</span> <span class="nav-text">在线部署注意事项</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

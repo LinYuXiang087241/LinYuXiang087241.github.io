@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：快照功能，配额限制，异地备份 **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="glusterfs-管理员全记录：&lt;font color&#x3D;orange&gt;五&lt;&#x2F;font&gt;">
+<meta property="og:url" content="http://example.com/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%BA%94%EF%BC%89/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：快照功能，配额限制，异地备份 **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22412/g1.png">
+<meta property="article:published_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22412/g1.png">
+
+<link rel="canonical" href="http://example.com/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%BA%94%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>glusterfs-管理员全记录：<font color=orange>五</font> | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%BA%94%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          glusterfs-管理员全记录：<font color=orange>五</font>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-11-10 15:17:15" itemprop="dateCreated datePublished" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/" itemprop="url" rel="index"><span itemprop="name">storage</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8/" itemprop="url" rel="index"><span itemprop="name">分布式存储</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22412/g1.png" alt="22-412-g1"></p>
+<html><pre><code>前提：基于红帽商业版glusterfs 3.5
+本文主要内容：快照功能，配额限制，异地备份</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+
+<hr>
+<h3 id="管理快照"><a href="#管理快照" class="headerlink" title="管理快照"></a>管理快照</h3><ul>
+<li><ol>
+<li>先决条件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">卷的每一个 brick 必须为精简配置 lv</span><br><span class="line">单个 lv 仅提供 1 个 brick</span><br><span class="line">如果配置有异地复制，在快照前需要关闭</span><br><span class="line">拍摄快照时，不应进行其他操作，如: rebalance </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>创建快照<br>卷快照创建会创建包含 LVM 元数据信息的块快照池，拍摄后如果有新数据写入，快照池将会被覆盖，更改将复制到主卷。<br>因此，如果快照后，数据变化，快照池会消耗更多元数据空间。</li>
+</ol>
+<ul>
+<li>2.1 创建不含时间戳的快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot create snap1 testvol no-timestamp</span><br></pre></td></tr></table></figure></li>
+<li>2.2 gluster 创建的快照默认创建时不会被激活，要配置默认就被激活，参考以下<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot config activate-on-create enable</span><br></pre></td></tr></table></figure></li>
+<li>2.3 快照激活后，检查快照信息。<br>卷的快照会创建一个只读的 Red Hat Gluster Storage 卷。此卷将具有与原始&#x2F;父卷相同的配置，挂载点也如下<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot status snap2</span><br><span class="line"></span><br><span class="line">Snap Name : snap2</span><br><span class="line">Snap UUID : 07b4b3d3-1d79-4272-ae03-09cc0908dcbc</span><br><span class="line"></span><br><span class="line">	Brick Path        :   servera:/run/gluster/snaps/7b110933bf054efc97eff04fff524f8c/brick1/a  &lt;&lt;&lt;</span><br><span class="line">	Volume Group      :   vg_bricks</span><br><span class="line">	Brick Running     :   Yes</span><br><span class="line">	Brick PID         :   3426</span><br><span class="line">	Data Percentage   :   0.54</span><br><span class="line">	LV Size           :   2.00g</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	Brick Path        :   serverb:/run/gluster/snaps/7b110933bf054efc97eff04fff524f8c/brick2/b  &lt;&lt;&lt;</span><br><span class="line">	Volume Group      :   vg_bricks</span><br><span class="line">	Brick Running     :   Yes</span><br><span class="line">	Brick PID         :   2946</span><br><span class="line">	Data Percentage   :   0.54</span><br><span class="line">	LV Size           :   2.00g</span><br></pre></td></tr></table></figure></li>
+<li>2.4 手动激活快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot activate snap1</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="3">
+<li>克隆快照</li>
+</ol>
+<ul>
+<li>3.1 在 activate 的快照上创建克隆<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot clone clone-test snap2</span><br></pre></td></tr></table></figure></li>
+<li>3.2 创建的克隆卷 clone-test 在启动后，可以挂载用于文件恢复<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume start clone-test</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="4">
+<li>可用快照列表<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot list </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>查看可用快照的信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot info [(&lt;snapname&gt; | volume VOLNAME)]</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>查看可用快照的状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot status [(&lt;snapname&gt; | volume VOLNAME)]</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>配置快照 config<br>快照有以下内容</li>
+</ol>
+<ul>
+<li><ol>
+<li><code>snap-max-hard-limit</code><br>快照数量到达此数值将不允许继续创建快照，最大 256 个。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li><code>snap-max-soft-limit</code><br>默认为硬限制的 90%，如果启用自动删除，则到达先之后会自动删除创建时间最久的快照</li>
+</ol>
+</li>
+<li><ol start="3">
+<li><code>auto-delete</code><br>启用自动删除功能</li>
+</ol>
+</li>
+<li><ol start="4">
+<li><code>activate-on-create</code><br>快照创建时激活，默认为不激活</li>
+</ol>
+</li>
+<li>显示快照配置:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot config</span><br></pre></td></tr></table></figure></li>
+<li>修改快照配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot config [VOLNAME] ([snap-max-hard-limit &lt;count&gt;] [snap-max-soft-limit &lt;percent&gt;]) | ([auto-delete &lt;enable|disable&gt;]) | ([activate-on-create &lt;enable|disable&gt;])</span><br></pre></td></tr></table></figure>
+如果不添加 volname ，则默认为系统配置</li>
+</ul>
+</li>
+<li><ol start="8">
+<li>停用快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot deactivate &lt;snapname&gt; </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="9">
+<li>删除快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot delete &lt;snapname&gt;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<ul>
+<li>9.1 删除系统上所有快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot delete all</span><br></pre></td></tr></table></figure></li>
+<li>9.2 删除一个卷的所有快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot delete volume &lt;volname&gt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="10">
+<li>恢复快照</li>
+</ol>
+<ul>
+<li>10.1 恢复前提<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">被恢复的卷需要处于 stop 状态</span><br><span class="line">快照必须存在</span><br><span class="line">不应在被恢复的卷上进行添加卷等操作</span><br></pre></td></tr></table></figure></li>
+<li>10.2 恢复快照，快照恢复后将会被删除，建议恢复后重新拍摄快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot restore snap3</span><br></pre></td></tr></table></figure></li>
+<li>10.3 异地复制卷的快照恢复<ul>
+<li>10.3.1 关闭异地副本<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication MASTER_VOL SLAVE_HOST::SLAVE_VOL stop</span><br></pre></td></tr></table></figure></li>
+<li>10.3.2 关闭从卷后关闭主卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume stop VOLNAME</span><br></pre></td></tr></table></figure></li>
+<li>10.3.3 恢复主卷 snapshot<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster snapshot restore snapname</span><br></pre></td></tr></table></figure></li>
+<li>10.3.4 启动从卷然后启动主卷</li>
+<li>10.3.5 启动异地主从复制<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication MASTER_VOL SLAVE_HOST::SLAVE_VOL start</span><br></pre></td></tr></table></figure></li>
+<li>10.3.6 恢复异地主从复制<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication MASTER_VOL SLAVE_HOST::SLAVE_VOL resume</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="11">
+<li>访问快照<br>快照卷中内容为只读，不支持 nfs 和 cifs 方式挂载快照<br>客户端执行以下命令只读访问快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># mount -t glusterfs &lt;hostname&gt;:/snaps/&lt;snapname&gt;/parent-VOLNAME /mount_point</span><br><span class="line"># mount -t glusterfs servera:/snaps/snap1/testvol ./nfs/</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="12">
+<li>调度快照</li>
+</ol>
+<ul>
+<li><p>12.1 前提条件</p>
+<ul>
+<li><ol>
+<li>设置共享存储卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set all cluster.enable-shared-storage enable</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>在所有节点执行初始化程序<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py init</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>12.2 启用计划快照</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py enable</span><br></pre></td></tr></table></figure></li>
+<li><p>12.3 禁用计划快照</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py disable</span><br></pre></td></tr></table></figure></li>
+<li><p>12.4 查看计划快照状态</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py status</span><br></pre></td></tr></table></figure></li>
+<li><p>12.5 添加计划快照</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py add &quot;Job Name&quot; &quot;Schedule&quot; &quot;Volume Name&quot;</span><br><span class="line"># snap_scheduler.py add &quot;Job1&quot; &quot;*/5 * * * *&quot; &quot;testvol&quot;</span><br><span class="line">snap_scheduler: Successfully added snapshot schedule   </span><br></pre></td></tr></table></figure></li>
+<li><p>12.6 编辑计划快照</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py edit &quot;Job Name&quot; &quot;Schedule&quot; &quot;Volume Name&quot;</span><br><span class="line"># snap_scheduler.py edit &quot;Job1&quot; &quot;*/1 * * * *&quot; &quot;testvol&quot;</span><br><span class="line"> </span><br><span class="line">snap_scheduler: Successfully edited snapshot schedule</span><br><span class="line"># snap_scheduler.py list</span><br><span class="line">JOB_NAME         SCHEDULE         OPERATION        VOLUME NAME      </span><br><span class="line">--------------------------------------------------------------------</span><br><span class="line">Job1             */1 * * * *      Snapshot Create  testvol          </span><br><span class="line"># gluster snapshot list</span><br><span class="line">snap1</span><br><span class="line">Scheduled-Job1-testvol_GMT-2022.05.07-11.00.01</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+<li><p>12.7 显示所有计划快照计划</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py list</span><br><span class="line">JOB_NAME         SCHEDULE         OPERATION        VOLUME NAME      </span><br><span class="line">--------------------------------------------------------------------</span><br><span class="line">Job1             */5 * * * *      Snapshot Create  testvol  </span><br></pre></td></tr></table></figure></li>
+<li><p>12.8 删除计划快照</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># snap_scheduler.py delete &quot;Job Name&quot;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="13">
+<li>用户可维护的快照<br>当文件很久之前删除，可以到 <code>.snaps</code> 目录中进行恢复。<br>每个激活的快照由 User Serviceable Snapshot 初始化时，都会消耗一定内存，每个brick 大约 10MB。</li>
+</ol>
+<ul>
+<li>13.1 针对卷开启此功能<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol features.uss enable</span><br></pre></td></tr></table></figure></li>
+<li>13.2 激活快照</li>
+<li>13.3 客户端挂载</li>
+<li>13.4 在卷中会存在 <code>.snaps</code>路径， <code>ls -a</code> 也不会显示该路径<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># ls .snaps -p</span><br><span class="line">snap1/</span><br><span class="line">snap4_GMT-2022.05.07-11.09.15/</span><br></pre></td></tr></table></figure></li>
+<li>13.5 进入对应快照的目录，将对应文件复制出</li>
+<li>13.6 如果使用 cifs，必须进行以下配置，且 <code>.snaps</code>目录为隐藏目录，win需要开启查看隐藏目录。同时该目录不能在子文件夹中访问。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set volname features.show-snapshot-directory on</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="14">
+<li>快照常见问题处理</li>
+</ol>
+<ul>
+<li>14.1 快照创建失败<ul>
+<li><p>14.1.1. 检查 lv 名</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># lvs -o pool_lv /dev/mapper/vg_bricks-testvol </span><br><span class="line">  Pool     </span><br><span class="line">  brickpool</span><br></pre></td></tr></table></figure>
+<ul>
+<li>确保 brick 精简配置。以上如果输出没有 <code>pool</code>，则表示并非精简配置lv。</li>
+<li>解决办法：确保brick 是精简配置后重新尝试创建快照</li>
+</ul>
+</li>
+<li><p>14.1.2 检查卷的状态，确认卷所有 brick 都是好的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume status VOLNAME</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>解决办法：尝试重新强制启动卷并创建快照<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume start VOLNAME force</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>14.1.3 检查节点状态，如果由出现问题的节点，恢复集群状态后重新拍摄快照</p>
+</li>
+<li><p>14.1.4 检查卷 <code>rebalance</code> 是否正在进行，如果在，等待其结束</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume rebalance VOLNAME status</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>14.2 快照删除失败，导致系统不一致<ul>
+<li>14.2.1 关闭 glusterd 服务</li>
+<li>14.2.2 从问题节点删除特定快照存储    <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># rm -rf /var/lib/glusterd/snaps/snap1</span><br></pre></td></tr></table></figure></li>
+<li>14.2.3 启动 glusterd 服务</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="配额管理"><a href="#配额管理" class="headerlink" title="配额管理"></a>配额管理</h3><ul>
+<li><ol>
+<li>为卷启用或关闭配额</li>
+</ol>
+<ul>
+<li>1.1 启用<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol enable</span><br></pre></td></tr></table></figure></li>
+<li>1.2 禁用<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol disable</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="2">
+<li>为卷中目录启用配额<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota VOLNAME limit-usage /dir hard_limit</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>限制磁盘使用量</li>
+</ol>
+<ul>
+<li>3.1 硬限制整个卷大小 1 TB<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol limit-usage / 1TB</span><br></pre></td></tr></table></figure></li>
+<li>3.2 配合以上将用量的 75% 设置为软限制<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol limit-usage / 1TB 75</span><br></pre></td></tr></table></figure></li>
+<li>3.3 将每一个卷的默认软限制从 80% 增加为 90%<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol default-soft-limit 90</span><br></pre></td></tr></table></figure></li>
+<li>3.4 显示当前卷所有的限制<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol list </span><br></pre></td></tr></table></figure></li>
+<li>3.5 默认 <code>df</code> 命令会显示卷所有可用空间，而不会按照配额为目录分配空间。通过以下配置使 <code>df</code> 查看配额大小<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol quota-deem-statfs on</span><br></pre></td></tr></table></figure></li>
+<li>3.6 gluster 通过定期检查磁盘的使用量<ul>
+<li>3.6.1 软限制默认为 <code>60</code> 秒，也即实际使用量小于配置时<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol soft-timeout 60</span><br></pre></td></tr></table></figure></li>
+<li>3.6.2 硬限制默认是 <code>5</code> 秒，也即实际容量超过配额后<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol hard-timeout 5</span><br></pre></td></tr></table></figure></li>
+<li>3.6.3 使用量到达软限制后，系统记录的频率。警报频率默认一周<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume quota testvol alert-time 1w</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>3.7 移除卷配额<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume quota testvol remove /  &lt;-- 移除卷根目录配额</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="配置异地复制"><a href="#配置异地复制" class="headerlink" title="配置异地复制"></a>配置异地复制</h3><ul>
+<li><ol>
+<li>前提条件</li>
+</ol>
+<ul>
+<li>1.1 主节点与从节点 gluster 版本一致</li>
+<li>1.2 主卷与从卷需要分别属于两个可信存储池</li>
+<li>1.3 从卷禁用以下选项<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set slavevol performance.quick-read off</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="2">
+<li>配置环境</li>
+</ol>
+<ul>
+<li>2.1 以 root 用户进行配置，主卷 ssh-copy-id 到从卷 root 用户<ul>
+<li>2.1.1 创建复制的 <code>pem pub</code> 前需要执行以下命令<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster system:: execute gsec_create</span><br></pre></td></tr></table></figure></li>
+<li>2.1.2 也可以执行以下命令<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># gluster-georep-sshkey generate</span><br><span class="line">+-----------+-------------+---------------+</span><br><span class="line">|    NODE   | NODE STATUS | KEYGEN STATUS |</span><br><span class="line">+-----------+-------------+---------------+</span><br><span class="line">|  serverb  |          UP |            OK |</span><br><span class="line">|  serverc  |          UP |            OK |</span><br><span class="line">| localhost |          UP |            OK |</span><br><span class="line">+-----------+-------------+---------------+</span><br></pre></td></tr></table></figure></li>
+<li>2.1.3 创建复制的 <code>pem pub</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication testvol servere::testcopy create push-pem</span><br></pre></td></tr></table></figure></li>
+<li>2.1.4 为主卷与从卷启用共享存储<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set all cluster.enable-shared-storage enable</span><br></pre></td></tr></table></figure></li>
+<li>2.1.5 为异地从卷配置元数据卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication testvol servere::testcopy config use_meta_volume true</span><br></pre></td></tr></table></figure></li>
+<li>2.1.6 启动异地复制<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication testvol servere::testcopy start</span><br></pre></td></tr></table></figure></li>
+<li>2.1.7 检查异地复制状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication testvol servere::testcopy status</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>2.2 以非 root 用户进行配置，主卷 ssh-copy-id 到从卷 syncuser 用户<ul>
+<li><p>2.2.1 在从卷节点创建 syncuser 用户 syncgrp 组</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># groupadd syncgrp</span><br><span class="line"># useradd syncuser -G syncgrp </span><br><span class="line"># echo redhat | passwd --stdin syncuser </span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.2 创建 mountbroker 目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster-mountbroker setup /var/mountbroker-root syncgrp</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.3 将卷与用户添加到 mountbroker 服务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster-mountbroker add copyvol syncuser</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.4 检查 mountbroker 状态，并重启 glusterd 服务</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#  gluster-mountbroker status</span><br><span class="line">+-----------+-------------+---------------------------+-------------+--------------------+</span><br><span class="line">|    NODE   | NODE STATUS |         MOUNT ROOT        |    GROUP    |       USERS        |</span><br><span class="line">+-----------+-------------+---------------------------+-------------+--------------------+</span><br><span class="line">| localhost |          UP | /var/mountbroker-root(OK) | syncgrp(OK) | syncuser(copyvol)  |</span><br><span class="line">+-----------+-------------+---------------------------+-------------+--------------------+</span><br><span class="line"># systemclt restart glusterd</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.5 配置主卷节点可以免密登录 servere 通过 syncuser账户</p>
+</li>
+<li><p>2.2.6 创建密钥</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster system:: execute gsec_create</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.7 推送密钥到 servere syncuser 用户</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol create push-pem</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.8 为主卷与从卷启用共享存储</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set all cluster.enable-shared-storage enable</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>2.2.9 运行 <code>/usr/libexec/glusterfs/set_geo_rep_pem_keys.sh</code> </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># /usr/libexec/glusterfs/set_geo_rep_pem_keys.sh syncuser prodvol copyvol</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.10 为异地从卷配置元数据卷</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol config use_meta_volume true</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.11 启动异地复制</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol start</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.12 检查异地复制状态</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol status</span><br></pre></td></tr></table></figure></li>
+<li><p>2.2.13 在取消异地复制后，需要在从卷节点删除 mountbroker 用户以及卷的信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster-mountbroker remove --volume copyvol --user syncuser</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="3">
+<li>异地复制配置</li>
+</ol>
+<ul>
+<li>3.1 配置异地复制方式使用 rsync<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol config sync_method rsync</span><br></pre></td></tr></table></figure></li>
+<li>3.2 还原默认配置以 <code>!</code>开头，以重置日志等级为示例<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol config &#x27;!log-level&#x27;</span><br></pre></td></tr></table></figure></li>
+<li>3.3 设置异地复制检查点，可以获得当时主卷上数据是否已复制到从卷的同步信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol config checkpoint now</span><br></pre></td></tr></table></figure></li>
+<li>3.4 显示检查点的详细信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol status detail</span><br></pre></td></tr></table></figure></li>
+<li>3.5 移除检查点<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol config &#x27;!checkpoint&#x27;</span><br></pre></td></tr></table></figure></li>
+<li>3.6 删除异地复制会话<ul>
+<li>3.6.1 root 用户的复制会话<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#  gluster volume geo-replication Volume1 storage.backup.com::slave-vol delete</span><br></pre></td></tr></table></figure></li>
+<li>3.6.2 普通用户的复制会话<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#  gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol  delete reset-sync-time</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="4">
+<li>异地复制配置定时作业</li>
+</ol>
+<ul>
+<li>4.1 仅需要时运行会话<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#  python /usr/share/glusterfs/scripts/schedule_georep.py prodvol servere.glusterfs.linuxone.in copyvol</span><br></pre></td></tr></table></figure></li>
+<li>4.2 每天 20:30 运行异地复制<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">30 20 * * * root python /usr/share/glusterfs/scripts/schedule_georep.py --no-color Volume1 storage.backup.com slave-vol &gt;&gt; /var/log/glusterfs/schedule_georep.log 2&gt;&amp;1</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="5">
+<li>灾备恢复</li>
+</ol>
+<ul>
+<li>5.1 故障出现，从卷提升为主卷<ul>
+<li>5.1.1 禁用从卷的只读<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#  gluster volume set copyvol features.read-only off</span><br></pre></td></tr></table></figure></li>
+<li>5.1.2 运行以下命令，将从卷提升为主卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set copyvol geo-replication.indexing on</span><br><span class="line"># gluster volume set copyvol changelog on</span><br></pre></td></tr></table></figure></li>
+<li>5.1.3 在应用配置使用从卷进行 I&#x2F;O 操作</li>
+</ul>
+</li>
+<li>5.2 主卷恢复，将主卷恢复到原始状态<ul>
+<li>5.2.1 停止从原始主卷到原始从卷的异地复制会话(主卷执行)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication prodvol syncuser@servere.glusterfs.linuxone.in::copyvol stop force</span><br></pre></td></tr></table></figure></li>
+<li>5.2.2 创建新的异地复制会话，将原始从卷作为新的主卷，原始主卷作为新的从卷，命令携带<code>force</code>选项进行创建，到步骤配置元数据卷操作后停下。</li>
+<li>5.2.3 启用特殊同步模式，该模式将会忽略原始从卷启动 <code>indexing</code> 模式前的文件，这将会加快恢复<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication  copyvol syncuser@servera.glusterfs.linuxone.in::prodvol config special-sync-mode recover</span><br></pre></td></tr></table></figure></li>
+<li>5.2.4 禁用以下选项<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume geo-replication copyvol syncuser@servera.glusterfs.linuxone.in::prodvol config gfid-conflict-resolution false</span><br></pre></td></tr></table></figure></li>
+<li>5.2.5 启动从卷到主卷的异地复制</li>
+<li>5.2.6 通过配置检查点来检查异地复制是否完成</li>
+<li>5.2.7 检查点完成，停止并删除当前异地复制</li>
+<li>5.2.8 原始主卷禁用只读<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set prodvol features.read-only off</span><br></pre></td></tr></table></figure></li>
+<li>5.2.9 重置将从卷提升为主卷的选项<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume reset copyvol geo-replication.indexing force</span><br><span class="line"># gluster volume reset copyvol changelog</span><br></pre></td></tr></table></figure></li>
+<li>5.2.10 重新启动原始主卷到从卷的异地复制</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="6">
+<li>性能优化与故障分析</li>
+</ol>
+<ul>
+<li>6.1 开启以下选项优化性能<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set SLAVE_VOL batch-fsync-delay-usec 0</span><br></pre></td></tr></table></figure></li>
+<li>6.2 更改日志选项调整异地复制性能<ul>
+<li>6.2.1 更改日志速率，默认时间 15秒，异地复制推荐时间 10-15s，配置日志翻转时间<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set VOLNAME rollover-time 15</span><br></pre></td></tr></table></figure></li>
+<li>6.2.2 更改日志更新写入磁盘的频率，默认间隔为5<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set VOLNAME fsync-interval 5</span><br></pre></td></tr></table></figure></li>
+<li>6.2.3 触发 explicit sync <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># setfattr -n glusterfs.geo-rep.trigger-sync -v &quot;1&quot; &lt;file-path&gt;</span><br></pre></td></tr></table></figure></li>
+<li>6.3 异地同步失败<code>Stable</code>，日志有以下记录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[2011-05-02 13:42:13.467644] E [master:288:regjob] GMaster: failed to sync ./some_file`</span><br></pre></td></tr></table></figure>
+<ul>
+<li>异地复制要求 rsync 版本不低于 v3.0.0</li>
+</ul>
+</li>
+<li>6.4 异地同步失败<code>Faulty</code>，日志有类似记录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">012-09-28 14:06:18.378859] E [syncdutils:131:log_raise_exception] &lt;top&gt;: FAIL: Traceback (most recent call last): File &quot;/usr/local/libexec/glusterfs/python/syncdaemon/syncdutils.py&quot;, line 152, in twraptf(*aa) File &quot;/usr/local/libexec/glusterfs/python/syncdaemon/repce.py&quot;, line 118, in listen rid, exc, res = recv(self.inf) File &quot;/usr/local/libexec/glusterfs/python/syncdaemon/repce.py&quot;, line 42, in recv return pickle.load(inf) EOFError</span><br></pre></td></tr></table></figure>
+<ul>
+<li>检查ssh 连接</li>
+<li>检查 fuse 是否安装</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%85%AD%EF%BC%89/" rel="prev" title="glusterfs-管理员全记录：<font color=cyan>六</font>">
+      <i class="fa fa-chevron-left"></i> glusterfs-管理员全记录：<font color=cyan>六</font>
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/11/10/cl260-ceph4-%E7%AE%A1%E7%90%86%E4%B8%8E%E6%95%85%E9%9A%9C%E6%8E%92%E9%99%A4/" rel="next" title="cl260-ceph4-管理与故障排除">
+      cl260-ceph4-管理与故障排除 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%A1%E7%90%86%E5%BF%AB%E7%85%A7"><span class="nav-number">1.</span> <span class="nav-text">管理快照</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E9%A2%9D%E7%AE%A1%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">配额管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E5%BC%82%E5%9C%B0%E5%A4%8D%E5%88%B6"><span class="nav-number">3.</span> <span class="nav-text">配置异地复制</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

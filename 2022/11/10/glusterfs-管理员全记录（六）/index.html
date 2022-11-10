@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：glusterfs卷管理、gluster存储日志管理、BITROT检测、分层卷（弃用）、 监控工作负载、性能优化  **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="glusterfs-管理员全记录：&lt;font color&#x3D;cyan&gt;六&lt;&#x2F;font&gt;">
+<meta property="og:url" content="http://example.com/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%85%AD%EF%BC%89/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：glusterfs卷管理、gluster存储日志管理、BITROT检测、分层卷（弃用）、 监控工作负载、性能优化  **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22412/g1.png">
+<meta property="article:published_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22412/g1.png">
+
+<link rel="canonical" href="http://example.com/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%85%AD%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>glusterfs-管理员全记录：<font color=cyan>六</font> | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%85%AD%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          glusterfs-管理员全记录：<font color=cyan>六</font>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-11-10 15:17:15" itemprop="dateCreated datePublished" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/" itemprop="url" rel="index"><span itemprop="name">storage</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8/" itemprop="url" rel="index"><span itemprop="name">分布式存储</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22412/g1.png" alt="22-412-g1"></p>
+<html><pre><code>前提：基于红帽商业版glusterfs 3.5
+本文主要内容：glusterfs卷管理、gluster存储日志管理、BITROT检测、分层卷（弃用）、
+监控工作负载、性能优化 </code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+
+<hr>
+<h3 id="卷支持的配置项"><a href="#卷支持的配置项" class="headerlink" title="卷支持的配置项"></a>卷支持的配置项</h3><p>参考官方文档<code>SUPPORTED VOLUME OPTIONS</code><br><a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/en-us/red_hat_gluster_storage/3.5/html/administration_guide/volume_option_table">https://access.redhat.com/documentation/en-us/red_hat_gluster_storage/3.5/html/administration_guide/volume_option_table</a></p>
+<ul>
+<li><p>以只读的方式挂载卷</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set volname read-only enable</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>当 brick 可用的空间小于等于用户声明的保留空间时，不会创建新文件，只可进行内部操作，如重平衡、自愈等。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set volname storage.reserve percentage</span><br></pre></td></tr></table></figure>
+</li>
+<li><ol>
+<li>扩大卷（不支持开启异地复制的卷）</li>
+</ol>
+<ul>
+<li>1.1 扩展复制卷，复制卷应扩大对应副本数量的 brick ，扩展后应立即执行 rebalance<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume add-brick test-volume server5:/rhgs/brick5/ server6:/rhgs/brick6/</span><br></pre></td></tr></table></figure></li>
+<li>1.2 扩展分布式分散卷，如果配置为 6+2 的卷，则必须添加 6 的倍数的 brick</li>
+<li>1.3 扩展基础逻辑卷 lvm<ul>
+<li>1.3.1 强制关闭 glusterd 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume stop volname</span><br><span class="line"># kill -9 brick-process-id</span><br></pre></td></tr></table></figure></li>
+<li>1.3.2 扩展逻辑卷，扩展后重新启动卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># pvcreate /dev/PHYSICAL_VOLUME_NAME</span><br><span class="line"># vgextend VOLUME_GROUP_NAME /dev/PHYSICAL_VOLUME_NAME</span><br><span class="line"># lvextend -L+nG VOLUME_GROUP_NAME/POOL_NAME</span><br><span class="line"># lvextend -L+nG /dev/mapper/ LOGICAL_VOLUME_NAME-VOLUME_GROUP_NAME</span><br><span class="line"># xfs_growfs /dev/VOLUME_GROUP_NAME/LOGICAL_VOLUME_NAME</span><br><span class="line"># mount -o remount /dev/VOLUME_GROUP_NAME/LOGICAL_VOLUME_NAME /bricks/path_to_brick</span><br><span class="line"># gluster volume start VOLNAME force</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="2">
+<li>缩小卷</li>
+</ol>
+<ul>
+<li>2.1 收缩复制卷，必须收缩 replica 的倍数<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume remove-brick test-volume server2:/rhgs/brick2 start</span><br></pre></td></tr></table></figure>
+<ul>
+<li>2.1.1 检查移除状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume remove-brick VOLNAME BRICK status</span><br></pre></td></tr></table></figure></li>
+<li>2.1.2 显示状态为迁移完成，提交移除<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume remove-brick VOLNAME BRICK commit</span><br></pre></td></tr></table></figure></li>
+<li>2.1.3 停止移除操作<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume remove-brick VOLNAME BRICK stop</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="3">
+<li>迁移卷</li>
+</ol>
+<ul>
+<li>3.1 复制卷执行新 brick 替换旧 brick<ul>
+<li>3.1.1 执行替换<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume replace-brick test-volume server0:/rhgs/brick1 server5:/rhgs/brick1 commit force</span><br></pre></td></tr></table></figure></li>
+<li>3.1.2 新brick 在线后，检查自愈<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume heal VOL_NAME info</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><ol start="4">
+<li>重平衡 rebalance</li>
+</ol>
+<ul>
+<li>4.1 启动重平衡，最好将所有挂载点都取消后进行<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume rebalance VOLNAME start</span><br></pre></td></tr></table></figure></li>
+<li>4.2 重平衡速率<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set VOLNAME rebal-throttle lazy|normal|aggressive</span><br></pre></td></tr></table></figure></li>
+<li>4.3 显示重平衡状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume rebalance VOLNAME start</span><br></pre></td></tr></table></figure></li>
+<li>4.4. 停止重平衡<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume rebalance VOLNAME stop</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="5">
+<li>管理脑裂 split-brain</li>
+</ol>
+<ul>
+<li>5.1 防止脑裂<ul>
+<li>5.1.1 服务器端配置<ul>
+<li>5.1.1.1 为所有卷开启超过一半节点在线<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set all cluster.server-quorum-ratio 51%</span><br></pre></td></tr></table></figure></li>
+<li>5.1.1.2 特定卷需要以下配置以参与服务器仲裁<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#gluster volume set testvol cluster.server-quorum-type server</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>5.1.2 客户端配置<ul>
+<li>5.1.2.1 cluster.quorum-count 允许写入时必须可用的最小brick 数量</li>
+<li>5.1.2.2 cluster.quorum-type 配置写入行为， <ul>
+<li><ol>
+<li>fixed 则只要副本集中可用的砖块数量大于或等于该cluster.quorum-count选项的值，就允许写入。</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>auto 则当副本集中至少 50% 的砖块可用时，允许写入。</li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>5.2 从脑裂中恢复文件<br>参考官方文档 <code>Recovering from File Split-brain</code><br><a target="_blank" rel="noopener" href="https://access.redhat.com/documentation/en-us/red_hat_gluster_storage/3.5/html/administration_guide/sect-managing_split-brain">https://access.redhat.com/documentation/en-us/red_hat_gluster_storage/3.5/html/administration_guide/sect-managing_split-brain</a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="存储日志管理"><a href="#存储日志管理" class="headerlink" title="存储日志管理"></a>存储日志管理</h3><ul>
+<li><ol>
+<li>日志轮换<br>每周轮换一次，每两周以 gzip 格式压缩一次，保存 52 周的日志</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>配置日志格式</li>
+</ol>
+<ul>
+<li>为卷配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">日志包含 msg id</span><br><span class="line"># gluster volume set VOLNAME diagnostics.brick-log-format with-msg-id</span><br><span class="line">日志不包含 msg id</span><br><span class="line"># gluster volume set testvol diagnostics.brick-log-format no-msg-id</span><br></pre></td></tr></table></figure></li>
+<li>为客户端配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">日志包含 msg id</span><br><span class="line"># gluster volume set testvol diagnostics.client-log-format with-msg-id</span><br><span class="line">日志不包含 msg id</span><br><span class="line"># gluster volume set testvol diagnostics.client-log-format no-msg-id</span><br></pre></td></tr></table></figure></li>
+<li>为 glusterd 服务配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">日志包含 msg id</span><br><span class="line"># glusterd --log-format=with-msg-id</span><br><span class="line">日志不包含 msg id</span><br><span class="line"># glusterd --log-format=no-msg-id</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="3">
+<li>日志等级<br>默认为<code>info</code>，即仅记录<code>CRITICAL</code> <code>ERROR</code> <code>WARNING</code> <code>INFO</code> 的信息</li>
+</ol>
+<ul>
+<li>3.1 将 brick 日志等级提升为 warning<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol diagnostics.brick-log-level WARNING</span><br></pre></td></tr></table></figure></li>
+<li>3.2 将 brick 的 syslog 日志等级提升为 warning<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol diagnostics.brick-sys-log-level WARNING</span><br></pre></td></tr></table></figure></li>
+<li>3.3 将客户端日志等级调整为 error<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol diagnostics.client-log-level ERROR</span><br></pre></td></tr></table></figure></li>
+<li>3.4 客户端 syslog 日志等级调整为 error<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set testvol diagnostics.client-sys-log-level ERROR</span><br></pre></td></tr></table></figure></li>
+<li>3.5 为 <code>glusterd</code> 服务配置日志级别 <code>/etc/sysconfig/gluster</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">LOG_LEVEL=&#x27;value&#x27;</span><br></pre></td></tr></table></figure>
+配置完成后重启<code>glusterd</code>服务</li>
+<li>3.6 以日志级别为 error 的方式运行<code>volume status</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster --log-level=ERROR volume status</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="BITROT检测"><a href="#BITROT检测" class="headerlink" title="BITROT检测"></a>BITROT检测</h3><ul>
+<li><ol>
+<li>启用或禁用 BitRot 检测<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME enable</span><br><span class="line">gluster volume bitrot VOLNAME disable</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>清理文件</li>
+</ol>
+<ul>
+<li>2.1 启动按需清理<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME scrub ondemand</span><br></pre></td></tr></table></figure></li>
+<li>2.2 暂停清理<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME scrub pause</span><br></pre></td></tr></table></figure></li>
+<li>2.3 恢复卷清理<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME scrub resume</span><br></pre></td></tr></table></figure></li>
+<li>2.4 卷清理状态<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME scrub status</span><br></pre></td></tr></table></figure></li>
+<li>2.5 配置清理的速录，默认<code>lazy</code> <code>normal</code> <code>aggressive</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME scrub-throttle rate</span><br></pre></td></tr></table></figure></li>
+<li>2.6 配置清理频率 <code>daily</code> <code>weekly</code> 默认<code>biweekly</code> <code>monthly</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gluster volume bitrot VOLNAME scrub-frequency frequency</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="分层卷（弃用）"><a href="#分层卷（弃用）" class="headerlink" title="分层卷（弃用）"></a>分层卷（弃用）</h3><ul>
+<li><ol>
+<li>将层附加到卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume tier test-volume attach replica 3 server1:/rhgs/brick5/b1 server2:/rhgs/brick6/b2</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>要设置文件升级和降级的百分比，请运行以下命令：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set VOLNAME cluster.watermark-hi value</span><br><span class="line"># gluster volume set VOLNAME cluster.watermark-low value  </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>显示分成卷的信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume tier VOLNAME status</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>分层卷分离</li>
+</ol>
+<ul>
+<li><p>4.1 启动分离</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume tier VOLNAME detach start  </span><br></pre></td></tr></table></figure>
+</li>
+<li><p>4.2 检查分离状态</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume tier VOLNAME detach status</span><br></pre></td></tr></table></figure></li>
+<li><p>4.3 成功分离后，提交层分离</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume tier VOLNAME detach commit</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="监控工作负载"><a href="#监控工作负载" class="headerlink" title="监控工作负载"></a>监控工作负载</h3><ul>
+<li><ol>
+<li>卷分析</li>
+</ol>
+<ul>
+<li>1.1 启动卷分析<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume profile VOLNAME start </span><br></pre></td></tr></table></figure></li>
+<li>1.2 显示信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume profile VOLNAME info </span><br></pre></td></tr></table></figure></li>
+<li>1.3 停止卷分析<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume profile VOLNAME stop</span><br></pre></td></tr></table></figure></li>
+<li>1.4 显示挂载点的所有信息<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># setfattr -ntrusted.io-stats-dump -v output_file_id  mount_point</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h3><ul>
+<li><ol>
+<li>小文件性能增强</li>
+</ol>
+<ul>
+<li>1.1 为客户端配置时间线程，最多可用同时处理n个网络连接<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set test-vol client.event-threads 4</span><br></pre></td></tr></table></figure></li>
+<li>1.2 为访问卷的服务器调整事件线程<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set test-vol server.event-threads 4</span><br></pre></td></tr></table></figure></li>
+<li>1.3 启用查找优化<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set VOLNAME cluster.lookup-optimize &lt;on/off&gt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="2">
+<li>目录操作</li>
+</ol>
+<ul>
+<li>2.1 启用元数据存储<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;volname&gt; group metadata-cache</span><br></pre></td></tr></table></figure></li>
+<li>2.2 增加可以缓存的文件数量，增加会增加 brick 进程内存占用<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster volume set &lt;VOLNAME&gt; network.inode-lru-limit &lt;n&gt;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/11/10/cl260-ceph4%E9%83%A8%E7%BD%B2/" rel="prev" title="cl260-ceph4部署">
+      <i class="fa fa-chevron-left"></i> cl260-ceph4部署
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%BA%94%EF%BC%89/" rel="next" title="glusterfs-管理员全记录：<font color=orange>五</font>">
+      glusterfs-管理员全记录：<font color=orange>五</font> <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%B7%E6%94%AF%E6%8C%81%E7%9A%84%E9%85%8D%E7%BD%AE%E9%A1%B9"><span class="nav-number">1.</span> <span class="nav-text">卷支持的配置项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">存储日志管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BITROT%E6%A3%80%E6%B5%8B"><span class="nav-number">3.</span> <span class="nav-text">BITROT检测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B1%82%E5%8D%B7%EF%BC%88%E5%BC%83%E7%94%A8%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">分层卷（弃用）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD"><span class="nav-number">5.</span> <span class="nav-text">监控工作负载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">6.</span> <span class="nav-text">性能优化</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

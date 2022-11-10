@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：安装&#x2F;启用web console，客户端配置 **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="glusterfs-管理员全记录：&lt;font color&#x3D;red&gt;一&lt;&#x2F;font&gt;">
+<meta property="og:url" content="http://example.com/2022/04/12/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%B8%80%EF%BC%89/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="前提：基于红帽商业版glusterfs 3.5 本文主要内容：安装&#x2F;启用web console，客户端配置 **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22412/g1.png">
+<meta property="og:image" content="http://example.com/images/22412/g2.png">
+<meta property="og:image" content="http://example.com/images/22412/g3.png">
+<meta property="og:image" content="http://example.com/images/22412/g4.png">
+<meta property="og:image" content="http://example.com/images/22412/g5.png">
+<meta property="og:image" content="http://example.com/images/22412/g6.png">
+<meta property="og:image" content="http://example.com/images/22412/g7.png">
+<meta property="og:image" content="http://example.com/images/22412/g8.png">
+<meta property="article:published_time" content="2022-04-12T23:45:03.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="gluster">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22412/g1.png">
+
+<link rel="canonical" href="http://example.com/2022/04/12/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%B8%80%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>glusterfs-管理员全记录：<font color=red>一</font> | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/04/12/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E4%B8%80%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          glusterfs-管理员全记录：<font color=red>一</font>
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-12 23:45:03" itemprop="dateCreated datePublished" datetime="2022-04-12T23:45:03+00:00">2022-04-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/" itemprop="url" rel="index"><span itemprop="name">storage</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/storage/%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8/" itemprop="url" rel="index"><span itemprop="name">分布式存储</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22412/g1.png" alt="22-412-g1"></p>
+<html><pre><code>前提：基于红帽商业版glusterfs 3.5
+本文主要内容：安装/启用web console，客户端配置</code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+---
+
+<h2 id="环境介绍"><a href="#环境介绍" class="headerlink" title="环境介绍"></a>环境介绍</h2><ul>
+<li>glusterfs 集群环境如下<table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>IP</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>servera.glusterfs.linuxone.in</td>
+<td>192.168.31.110</td>
+<td>prod</td>
+</tr>
+<tr>
+<td>serverb.glusterfs.linuxone.in</td>
+<td>192.168.31.111</td>
+<td>prod</td>
+</tr>
+<tr>
+<td>serverc.glusterfs.linuxone.in</td>
+<td>192.168.31.112</td>
+<td>prod</td>
+</tr>
+<tr>
+<td>serverb.glusterfs.linuxone.in</td>
+<td>192.168.31.113</td>
+<td>prod</td>
+</tr>
+<tr>
+<td>servere.glusterfs.linuxone.in</td>
+<td>192.168.31.114</td>
+<td>异地复制</td>
+</tr>
+<tr>
+<td>manager.glusterfs.linuxone.in</td>
+<td>192.168.31.109</td>
+<td>管理&#x2F;监控</td>
+</tr>
+<tr>
+<td>client.glusterfs.linuxone.in</td>
+<td>192.168.31.108</td>
+<td>client</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<hr>
+<h2 id="glusterfs-红帽官方-Master-Article"><a href="#glusterfs-红帽官方-Master-Article" class="headerlink" title="glusterfs  红帽官方 Master Article"></a>glusterfs  红帽官方 Master Article</h2><p>Red Hat Gluster Storage Troubleshooting and Recommended Configurations (Master Article)<br><a target="_blank" rel="noopener" href="https://access.redhat.com/solutions/2451341">https://access.redhat.com/solutions/2451341</a></p>
+<hr>
+<h2 id="安装-glusterfs"><a href="#安装-glusterfs" class="headerlink" title="安装 glusterfs"></a>安装 glusterfs</h2><ul>
+<li><p>前提</p>
+<ul>
+<li><p>rhel 6 开启的repo</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">   rhel-6-server-rpms</span><br><span class="line">   rhel-scalefs-for-rhel-6-server-rpms</span><br><span class="line">   rhs-3-for-rhel-6-server-rpms</span><br><span class="line">samba需要开启的repo:  rh-gluster-3-samba-for-rhel-6-server-rpms</span><br><span class="line">rhel 6 不支持 nfs</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>rhel 7 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-rpms</span><br><span class="line">rh-gluster-3-for-rhel-7-server-rpms</span><br><span class="line">samba需要开启 或 需要 CTDB 的repo: rh-gluster-3-samba-for-rhel-7-server-rpms</span><br><span class="line">nfs需要开启repo: rh-gluster-3-nfs-for-rhel-7-server-rpms  rhel-ha-for-rhel-7-server-rpms</span><br><span class="line">rhel-7-server-ansible-2-rpms</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>rhel 8 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rhel-8-for-x86_64-baseos-rpms</span><br><span class="line">rhel-8-for-x86_64-appstream-rpms</span><br><span class="line">rh-gluster-3-for-rhel-8-x86_64-rpms</span><br><span class="line">samba需要开启repo: rh-gluster-3-samba-for-rhel-8-x86_64-rpms</span><br><span class="line">nfs需要开启repo: rh-gluster-3-nfs-for-rhel-8-x86_64-rpms rhel-8-for-x86_64-highavailability-rpms</span><br><span class="line">ansible-2-for-rhel-8-x86_64-rpms </span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>安装 <code>Red Hat Gluster Storage</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install redhat-storage-server</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h2 id="创建加密集群"><a href="#创建加密集群" class="headerlink" title="创建加密集群"></a>创建加密集群</h2><ul>
+<li><p>1.1 server<code>a</code> &#x2F; <code>b</code> &#x2F; <code>c</code> &#x2F; <code>d</code> &#x2F; <code>e</code> &#x2F; <code>client</code> 节点创建自签名证书</p>
+<ul>
+<li><p>进入对应目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cd /etc/ssl</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建key</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># openssl genrsa -out glusterfs.key 2048</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建pem ，注意glusterfs中必须为<code>.pem</code>结尾，并复制一份附件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># openssl req -new -x509 -key glusterfs.key -subj &quot;/CN=servera&quot; -out glusterfs.pem</span><br><span class="line"># cp glusterfs.pem servera.pem   &lt;&lt;&lt;仅以servera为例</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将对应主机的附件上传至一台主机同一目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># scp ./servera.pem manager.glusterfs.linuxone.in:~  &lt;---此处以servera为例</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>复制完成后，在manager节点创建ca证书，并将<code>glusterfs.ca</code>复制回对应主机的<code>/etc/ssl</code>目录</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># cat servera.pem serverb.pem serverc.pem serverd.pem servere.pem client.pem &gt; glusterfs.ca</span><br><span class="line"># for i in servera serverb serverc serverd servere client</span><br><span class="line">  do</span><br><span class="line">  scp glusterfs.ca root@$i:/etc/ssl</span><br><span class="line">  done</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>1.2 在所有主机创建 <code>secure-access</code> 文件并重启<code>glusterd</code>服务</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># for i in servera serverb serverc serverd servere client</span><br><span class="line">  do</span><br><span class="line">  ssh root@$i touch /var/lib/glusterd/secure-access &amp;&amp; systemctl restart glusterd</span><br><span class="line">  done</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>1.3 在servera添加节点</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># gluster peer probe serverb</span><br><span class="line"># gluster peer probe serverc</span><br><span class="line"># gluster peer probe serverd</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>1.4 检查是否添加成功</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"># gluster peer status</span><br><span class="line">Number of Peers: 3</span><br><span class="line"></span><br><span class="line">   Hostname: serverb</span><br><span class="line">   Uuid: 41663cd0-0de9-4a5d-a516-4130821b07a5</span><br><span class="line">   State: Peer in Cluster (Connected)</span><br><span class="line">   </span><br><span class="line">   Hostname: serverc</span><br><span class="line">   Uuid: 1610842b-6e87-458e-b66c-0459e07e1c95</span><br><span class="line">   State: Peer in Cluster (Connected)</span><br><span class="line"></span><br><span class="line">   Hostname: serverd</span><br><span class="line">   Uuid: d9381deb-e2b1-4ea3-a8ae-a75d2e3ecef0</span><br><span class="line">   State: Peer in Cluster (Connected)</span><br><span class="line"></span><br><span class="line"># gluster pool list</span><br><span class="line">UUID					Hostname 	State</span><br><span class="line">   41663cd0-0de9-4a5d-a516-4130821b07a5	serverb  	Connected </span><br><span class="line">   1610842b-6e87-458e-b66c-0459e07e1c95	serverc  	Connected </span><br><span class="line">   d9381deb-e2b1-4ea3-a8ae-a75d2e3ecef0	serverd  	Connected </span><br><span class="line">   5bf6133c-b535-42c7-be31-79e063237f44	localhost	Connected </span><br></pre></td></tr></table></figure>
+</li>
+<li><p>1.5 移除节点</p>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># gluster peer detach serverb &lt;---这里以移除serverb节点为例子</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h2 id="安装-web-console"><a href="#安装-web-console" class="headerlink" title="安装 web console"></a>安装 web console</h2><ul>
+<li><p>前提</p>
+<ul>
+<li><p>gluster web console 节点开启以下软件包频道</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># rhel-7-server-rpms</span><br><span class="line"># rhel-7-server-ansible-2-rpms</span><br><span class="line"># rh-gluster-3-web-admin-server-for-rhel-7-server-rpms</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>gluster 存储节点开启以下软件包频道</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># rhel-7-server-rpms</span><br><span class="line"># rhel-7-server-ansible-2-rpms</span><br><span class="line"># rh-gluster-3-for-rhel-7-server-rpms</span><br><span class="line"># rh-gluster-3-web-admin-agent-for-rhel-7-server-rpms</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建挂载点。对于glusterfs，安装前要创建单独挂载点</p>
+<ul>
+<li>小型集群，节点数 &lt; 8<ul>
+<li><code>/var/lib/etcd</code> <code>xfs</code>  &gt; 20GB</li>
+<li><code>/var/lib/carbon</code> <code>xfs</code> &gt; 200GB</li>
+</ul>
+</li>
+<li>中型集群，节点数 &gt;9 而 &lt; 16 ，<ul>
+<li><code>/var/lib/etcd</code> <code>xfs</code>  &gt; 20GB</li>
+<li><code>/var/lib/carbon</code> <code>xfs</code> &gt; 350GB</li>
+</ul>
+</li>
+<li>大型集群，节点数 &gt;17 而 &lt;24<ul>
+<li><code>/var/lib/etcd</code> <code>xfs</code>  &gt; 20GB</li>
+<li><code>/var/lib/carbon</code> <code>xfs</code> &gt; 500GB</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>安装步骤</p>
+<ul>
+<li><ol>
+<li>配置所有节点 root ssh 免密登录，并于manager节点安装必要软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install tendrl-ansible</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>创建如下示例 <code>inventory</code> 文件<html><pre><code>[tendrl_server]
+manager.glusterfs.linuxone.in
+[gluster_servers]
+servera.glusterfs.linuxone.in
+serverb.glusterfs.linuxone.in
+serverc.glusterfs.linuxone.in
+serverd.glusterfs.linuxone.in
+[all:vars]
+etcd_ip_address=192.168.31.109
+etcd_fqdn=manager.glusterfs.linuxone.in
+graphite_fqdn=manager.glusterfs.linuxone.in
+<font color=red>configure_firewalld_for_tendrl=false</font>   <<< 由于之前关闭了firewalld，所以需要配置该选项</code></pre></html></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>将playbook复制到当前目录<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cp /usr/share/doc/tendrl-ansible-1.6.3/site.yml .</span><br><span class="line"># cp /usr/share/doc/tendrl-ansible-1.6.3/prechecks.yml .</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>分别执行playbook，等待安装完成<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># ansible-playbook -i invntory prechecks.yml</span><br><span class="line"># ansible-playbook -i invntory site.yml </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>安装完成，manager 页面登录 <code>username</code>: <code>admin</code> | <code>password</code>: <code>adminuser</code><br>同时会在当前目录生成 <code> grafana_admin_passwd</code> 文件，里面记录了 grafana 的密码<br><img src="/images/22412/g2.png" alt="22-412-g2"></li>
+</ol>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="web-console-开启卷分析"><a href="#web-console-开启卷分析" class="headerlink" title="web console 开启卷分析"></a>web console 开启卷分析</h2><ul>
+<li><p>前提</p>
+<ul>
+<li>创建 <code>lvm</code> ，挂载并启动卷<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># pvcreate /dev/sdb</span><br><span class="line">   # vgcreate vg_bricks /dev/sdb</span><br><span class="line">   # lvcreate -T vg_bricks/brickpool -l 100%FREE</span><br><span class="line">   # lvcreate -T vg_bricks/brickpool -V 2G -n brick1</span><br><span class="line">   # mkfs.xfs -i size=512 /dev/vg_bricks/brick1</span><br><span class="line">   # mkdir /bricks/test</span><br><span class="line">   # echo &quot;/dev/vg_bricks/brick1 /bricks/test xfs defaults 0 0&quot; &gt;&gt; /etc/fstab</span><br><span class="line">   # mount -a</span><br><span class="line">   # gluster volume create testvol servera:/bricks/test/testvol</span><br><span class="line">   # gluster volume status</span><br><span class="line">   # gluster volume start testvol</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>在web console 开启卷分析<code>Enable Profiling</code></p>
+<ul>
+<li><code>volumes</code> &gt; <code>Enable Profiling</code><br><img src="/images/22412/g3.png" alt="22-412-g3"></li>
+<li>开启后，会对卷的使用数据进行分析<br><img src="/images/22412/g4.png" alt="22-412-g4"></li>
+<li>关闭卷分析 <code>volumes</code> &gt; <code>Disable Profiling</code><br><img src="/images/22412/g5.png" alt="22-412-g5"></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="web-console-扩展集群增加节点"><a href="#web-console-扩展集群增加节点" class="headerlink" title="web console 扩展集群增加节点"></a>web console 扩展集群增加节点</h2><ul>
+<li>前提<ul>
+<li><ol>
+<li>节点已经配置完成</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>节点已经配置证书<code>glusterfs.ca</code> &#x2F; <code>glusterfs.key</code> &#x2F; <code>glusterfs.pem</code></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>配置管理节点至扩展节点 ssh 免密码登录</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>通过 web console 扩展步骤<ul>
+<li><ol>
+<li>添加扩展节点至<code>inventory</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># cat invntory </span><br><span class="line">[gluster_servers]</span><br><span class="line">servera.glusterfs.linuxone.in</span><br><span class="line">serverb.glusterfs.linuxone.in</span><br><span class="line">serverc.glusterfs.linuxone.in</span><br><span class="line">serverd.glusterfs.linuxone.in</span><br><span class="line">servere.glusterfs.linuxone.in   &lt;&lt;&lt;</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>运行play book<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># ansible-playbook -i invntory site.yml</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>web console 进行扩展</li>
+</ol>
+<ul>
+<li>3.1 点击 expend<br><img src="/images/22412/g6.png" alt="22-412-g6">   </li>
+<li>3.2 点击 expand<br><img src="/images/22412/g7.png" alt="22-412-g7"></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="web-console-取消管理集群"><a href="#web-console-取消管理集群" class="headerlink" title="web console 取消管理集群"></a>web console 取消管理集群</h2><ul>
+<li><p>前提<br>集群已经被 web console 管理</p>
+</li>
+<li><p>web console 中点击 unmanage<br><img src="/images/22412/g8.png" alt="22-412-g8"></p>
+</li>
+</ul>
+<hr>
+<h2 id="监控信息保存配置"><a href="#监控信息保存配置" class="headerlink" title="监控信息保存配置"></a>监控信息保存配置</h2><ul>
+<li><ol>
+<li>取消管理集群</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>停止 <code>carbon-cache</code> 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># systemctl stop carbon-cache</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>修改配置文件:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># vim /etc/tendrl/monitoring-integration/storage-schemas.conf</span><br><span class="line">[tendrl]</span><br><span class="line">pattern = ^tendrl\.</span><br><span class="line">retentions = 60:180d  &lt;&lt;&lt;</span><br></pre></td></tr></table></figure>
+<code>60</code>为数据点<br><code>180d</code>为保存天数，数据点相加最多180天的数据</li>
+</ol>
+</li>
+<li><ol start="4">
+<li>重启 <code>carbon-cache</code> 服务<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># systemctl start carbon-cache</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2 id="web-管理的日志等级"><a href="#web-管理的日志等级" class="headerlink" title="web 管理的日志等级"></a>web 管理的日志等级</h2><ul>
+<li><p>管理组件</p>
+<ul>
+<li>web 管理组件<ul>
+<li>tendrl-monitoring-integration</li>
+<li>tendrl-notifier</li>
+</ul>
+</li>
+<li>storage 节点管理组件<ul>
+<li>tendrl-gluster-intergration</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>日志等级</p>
+<ul>
+<li>DEBUG</li>
+<li>INFO</li>
+<li>WARNING</li>
+<li>ERROR(DEFAULT)</li>
+<li>CRITICAL</li>
+</ul>
+</li>
+<li><p>修改日志等级</p>
+<ul>
+<li>配置文件 <code>/etc/tendrl/node-agent/node-agent_logging.yaml</code>  <html><pre><code># vim /etc/tendrl/node-agent/node-agent_logging.yaml
+handlers:
+console:
+    class: logging.StreamHandler
+    level: ERROR
+    stream: ext://sys.stdout
+
+info_file_handler:<br>class: logging.handlers.SysLogHandler<br>facility: local5<br>address: &#x2F;dev&#x2F;log<br>level: ERROR<br>root:<br>level: ERROR<br>handlers: [console, info_file_handler]</code></pre></html></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="配置客户端"><a href="#配置客户端" class="headerlink" title="配置客户端"></a>配置客户端</h2><ul>
+<li>前提<ul>
+<li>RHEL 6<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rhel-6-server-rpms </span><br><span class="line">rhel-6-server-rhs-client-1-rpms</span><br></pre></td></tr></table></figure></li>
+<li>RHEL 7<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-rpms</span><br><span class="line">rhel-7-server-rh-common-rpms</span><br><span class="line">rh-gluster-3-client-for-rhel-7-server-rpms</span><br></pre></td></tr></table></figure></li>
+<li>RHEL 8<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rh-gluster-3-client-for-rhel-8-x86_64-rpms</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li>安装客户端<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install glusterfs glusterfs-fuse</span><br></pre></td></tr></table></figure></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/gluster/" rel="tag"># gluster</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/11/%E6%90%AD%E5%BB%BA%E5%86%85%E9%83%A8quay%E9%95%9C%E5%83%8F%E5%BA%93/" rel="prev" title="搭建内部quay镜像库">
+      <i class="fa fa-chevron-left"></i> 搭建内部quay镜像库
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/04/16/vm-esxi-6-5%E6%97%A0%E6%B3%95%E6%8C%82%E8%BD%BDnfs/" rel="next" title="vm-esxi-6.5无法挂载nfs">
+      vm-esxi-6.5无法挂载nfs <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">环境介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#glusterfs-%E7%BA%A2%E5%B8%BD%E5%AE%98%E6%96%B9-Master-Article"><span class="nav-number">2.</span> <span class="nav-text">glusterfs  红帽官方 Master Article</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-glusterfs"><span class="nav-number">3.</span> <span class="nav-text">安装 glusterfs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%8A%A0%E5%AF%86%E9%9B%86%E7%BE%A4"><span class="nav-number">4.</span> <span class="nav-text">创建加密集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-web-console"><span class="nav-number">5.</span> <span class="nav-text">安装 web console</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#web-console-%E5%BC%80%E5%90%AF%E5%8D%B7%E5%88%86%E6%9E%90"><span class="nav-number">6.</span> <span class="nav-text">web console 开启卷分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#web-console-%E6%89%A9%E5%B1%95%E9%9B%86%E7%BE%A4%E5%A2%9E%E5%8A%A0%E8%8A%82%E7%82%B9"><span class="nav-number">7.</span> <span class="nav-text">web console 扩展集群增加节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#web-console-%E5%8F%96%E6%B6%88%E7%AE%A1%E7%90%86%E9%9B%86%E7%BE%A4"><span class="nav-number">8.</span> <span class="nav-text">web console 取消管理集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7%E4%BF%A1%E6%81%AF%E4%BF%9D%E5%AD%98%E9%85%8D%E7%BD%AE"><span class="nav-number">9.</span> <span class="nav-text">监控信息保存配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#web-%E7%AE%A1%E7%90%86%E7%9A%84%E6%97%A5%E5%BF%97%E7%AD%89%E7%BA%A7"><span class="nav-number">10.</span> <span class="nav-text">web 管理的日志等级</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">11.</span> <span class="nav-text">配置客户端</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

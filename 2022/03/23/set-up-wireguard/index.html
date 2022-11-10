@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="在centos7配置wireguard">
+<meta property="og:type" content="article">
+<meta property="og:title" content="set-up-wireguard">
+<meta property="og:url" content="http://example.com/2022/03/23/set-up-wireguard/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="在centos7配置wireguard">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg1.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg2.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg3.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg4.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg5.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg6.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg7.jpg">
+<meta property="og:image" content="http://example.com/images/3-23/3-23-wg8.jpg">
+<meta property="article:published_time" content="2022-03-23T15:24:17.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="centos7">
+<meta property="article:tag" content="wireguard">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/3-23/3-23-wg1.jpg">
+
+<link rel="canonical" href="http://example.com/2022/03/23/set-up-wireguard/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>set-up-wireguard | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/03/23/set-up-wireguard/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          set-up-wireguard
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-03-23 15:24:17" itemprop="dateCreated datePublished" datetime="2022-03-23T15:24:17+00:00">2022-03-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-11-10 15:17:15" itemprop="dateModified" datetime="2022-11-10T15:17:15+00:00">2022-11-10</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/configuration/" itemprop="url" rel="index"><span itemprop="name">configuration</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="在centos7配置wireguard"><a href="#在centos7配置wireguard" class="headerlink" title="在centos7配置wireguard"></a>在centos7配置wireguard</h1><span id="more"></span>
+<h2 id="wireguard-服务端配置"><a href="#wireguard-服务端配置" class="headerlink" title="wireguard 服务端配置"></a>wireguard 服务端配置</h2><ul>
+<li><ol>
+<li>下载必要软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># yum install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm</span><br><span class="line"># yum install yum-plugin-elrepo</span><br><span class="line"># yum install kmod-wireguard wireguard-tools</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>配置内核参数<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># echo &quot;net.ipv4.ip_forward = 1&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line"># echo &quot;net.ipv4.conf.all.proxy_arp = 1&quot; &gt;&gt; /etc/sysctl.conf</span><br><span class="line"># sysctl -p /etc/sysctl.conf</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>配置iptables转发<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># iptables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT</span><br><span class="line"># iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT</span><br><span class="line"># iptables -A FORWARD -i wg0 -o wg0 -m conntrack --ctstate NEW -j ACCEPT</span><br><span class="line"># iptables -t nat -A POSTROUTING -s 192.0.2.0/24 -o eth0 -j MASQUERADE</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>生成wg秘钥<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wg genkey &gt; example.key</span><br><span class="line">wg pubkey &lt; example.key &gt; example.key.p</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>安装docker，docker-compose<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">详细步骤可以参考docker官方网站，不建议使用centos编译版本</span><br><span class="line"># yum install -y yum-utils</span><br><span class="line"># yum-config-manager     --add-repo     https://download.docker.com/linux/centos/docker-ce.repo</span><br><span class="line"># yum-config-manager --enable docker-ce-nightly</span><br><span class="line"># yum install docker-ce docker-ce-cli containerd.io</span><br><span class="line"># systemctl enable docker --now</span><br><span class="line"></span><br><span class="line">安装docker-compose</span><br><span class="line"># DOCKER_CONFIG=$&#123;DOCKER_CONFIG:-$HOME/.docker&#125;</span><br><span class="line"># mkdir -p $DOCKER_CONFIG/cli-plugins</span><br><span class="line"># curl -SL https://dl.mdbg.workers.dev/down/https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose</span><br><span class="line"># cd $DOCKER_CONFIG/cli-plugins/</span><br><span class="line"># chmod +x docker-compose</span><br><span class="line"># mv docker-compose /usr/bin/</span><br><span class="line"># docker-compose -v</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>使用<code>docker-compose</code>启动wireguard-web</li>
+</ol>
+<ul>
+<li>检查docker0 网桥的地址<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># ip a</span><br><span class="line">3: docker0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default </span><br><span class="line">    link/ether 02:42:34:35:b6:d5 brd ff:ff:ff:ff:ff:ff</span><br><span class="line">    inet &lt;font color=red&gt;172.17.0.1&lt;/font&gt;/16 scope global docker0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::42:34ff:fe35:b6d5/64 scope link </span><br><span class="line">       valid_lft forever preferred_lft forever</span><br></pre></td></tr></table></figure></li>
+<li>compose文件中的红色<code>ip</code>改为<code>docker0</code>桥的地址<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"># cat docker-compose.yaml </span><br><span class="line">version: &#x27;3.6&#x27;</span><br><span class="line">services:</span><br><span class="line">  wg-gen-web:</span><br><span class="line">    image: vx3r/wg-gen-web:latest</span><br><span class="line">    container_name: wg-gen-web</span><br><span class="line">    restart: always</span><br><span class="line">    expose:</span><br><span class="line">      - &quot;8080/tcp&quot;</span><br><span class="line">    ports:</span><br><span class="line">      - 80:8080</span><br><span class="line">    environment:</span><br><span class="line">      - WG_CONF_DIR=/data</span><br><span class="line">      - WG_INTERFACE_NAME=wg0.conf</span><br><span class="line">      - OAUTH2_PROVIDER_NAME=fake</span><br><span class="line">      - WG_STATS_API=http://172.17.0.1:8182</span><br><span class="line">    volumes:</span><br><span class="line">      - /etc/wireguard:/data</span><br><span class="line">    network_mode: bridge</span><br><span class="line">  wg-json-api:</span><br><span class="line">    image: james/wg-api:latest</span><br><span class="line">    container_name: wg-json-api</span><br><span class="line">    restart: always</span><br><span class="line">    cap_add:</span><br><span class="line">      - NET_ADMIN</span><br><span class="line">    network_mode: &quot;host&quot;</span><br><span class="line">    command: wg-api --device wg0 --listen 172.17.0.1:8182</span><br></pre></td></tr></table></figure></li>
+<li>启动docker-compose<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># docker-compose up -d</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="7">
+<li>通过网页对wireguard网关进行配置</li>
+</ol>
+<ul>
+<li><code>server interface address</code> 为wireguard网段的网关地址<br><img src="/images/3-23/3-23-wg1.jpg" alt="3-23-wg1"></li>
+<li><code>public endpoint</code>为当前wireguard主机的地址| <code>Default allowd ip</code>处填写与<code>1</code>中网关相同的网段<br><img src="/images/3-23/3-23-wg2.jpg" alt="3-23-wg2"></li>
+<li>对应图中的内容进行修改<br><img src="/images/3-23/3-23-wg3.jpg" alt="3-23-wg3"><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">1为：</span><br><span class="line">iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE</span><br><span class="line">2为：</span><br><span class="line">iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE</span><br><span class="line">修改完成后点击3保存备份。</span><br><span class="line">保存后，点击 UPDATE SERVER CONFIGURATION </span><br></pre></td></tr></table></figure></li>
+<li>配置完成后，检查对应 <code>/etc/wireguard/wg0.conf</code> 配置文件是否更改<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># cat /etc/wireguard/wg0.conf</span><br><span class="line">[Interface]</span><br><span class="line">   Address = 10.6.6.1/24</span><br><span class="line">ListenPort = 9999</span><br><span class="line">PrivateKey = aaaaaaaaaaaaaaaaaaaaaaaaa</span><br><span class="line"></span><br><span class="line">PreUp = echo WireGuard PreUp</span><br><span class="line">PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE</span><br><span class="line">PreDown = echo WireGuard PreDown</span><br><span class="line">PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="8">
+<li>配置系统自动加载配置文件、自动生成配置文件</li>
+</ol>
+<ul>
+<li>加入ExecReload在不中断活跃连接的情况下重新加载配置文件<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"># nano /usr/lib/systemd/system/wg-quick@.service</span><br><span class="line">[Unit]</span><br><span class="line">Description=WireGuard via wg-quick(8) for %I</span><br><span class="line">After=network-online.target nss-lookup.target</span><br><span class="line">Wants=network-online.target nss-lookup.target</span><br><span class="line">PartOf=wg-quick.target</span><br><span class="line">Documentation=man:wg-quick(8)</span><br><span class="line">Documentation=man:wg(8)</span><br><span class="line">Documentation=https://www.wireguard.com/</span><br><span class="line">Documentation=https://www.wireguard.com/quickstart/</span><br><span class="line">Documentation=https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8</span><br><span class="line">Documentation=https://git.zx2c4.com/wireguard-tools/about/src/man/wg.8</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">Type=oneshot</span><br><span class="line">RemainAfterExit=yes</span><br><span class="line">ExecStart=/usr/bin/wg-quick up %i</span><br><span class="line">ExecStop=/usr/bin/wg-quick down %i</span><br><span class="line">ExecReload=/bin/bash -c &#x27;exec /usr/bin/wg syncconf %i &lt;(exec /usr/bin/wg-quick strip %i)&#x27;</span><br><span class="line">Environment=WG_ENDPOINT_RESOLUTION_RETRIES=infinity</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.target</span><br></pre></td></tr></table></figure></li>
+<li>为wg-gen-web添加自动Reload<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># nano /etc/systemd/system/wg-gen-web.service</span><br><span class="line">[Unit]</span><br><span class="line">Description=Restart WireGuard</span><br><span class="line">After=network.target</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">Type=oneshot</span><br><span class="line">ExecStart=/usr/bin/systemctl reload wg-quick@wg0.service</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.target</span><br></pre></td></tr></table></figure></li>
+<li>添加wg-gen-web监听路径<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"># nano /etc/systemd/system/wg-gen-web.path</span><br><span class="line">[Unit]</span><br><span class="line">Description=Watch /etc/wireguard for changes</span><br><span class="line"></span><br><span class="line">[Path]</span><br><span class="line">PathModified=/etc/wireguard</span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=multi-user.target</span><br></pre></td></tr></table></figure></li>
+<li>配置完成后刷新配置<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># systemctl daemon-reload</span><br><span class="line"># wg-quick down wg0</span><br><span class="line"># systemctl enable wg-gen-web.service wg-gen-web.path wg-quick@wg0 --now</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>9 加入客户端前的操作</p>
+<ul>
+<li>在wireguard网页点击<code>ADD NEW CLIENT</code>创建client</li>
+<li><code>Client friendly name</code>为必填项，填写完成点击<code>SUBMIT</code>创建<br><img src="/images/3-23/3-23-wg4.jpg" alt="3-23-wg4"></li>
+</ul>
+</li>
+</ul>
+<h2 id="加入客户端"><a href="#加入客户端" class="headerlink" title="加入客户端"></a>加入客户端</h2><h3 id="windows客户端"><a href="#windows客户端" class="headerlink" title="windows客户端"></a>windows客户端</h3><ul>
+<li><ol>
+<li>登录wireguard.com 下载<a target="_blank" rel="noopener" href="https://www.wireguard.com/install/">win</a>专用的客户端<br><img src="/images/3-23/3-23-wg5.jpg" alt="3-23-wg5"></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>下载完成双击安装（安装过程需要可以访问外网）</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>安装完成后，下载服务端对应client的配置文件，如图点击<code>DOWNLOAD</code>，下载下来的便是<code>xxxx.conf</code><br><img src="/images/3-23/3-23-wg6.jpg" alt="3-23-wg6"></li>
+</ol>
+</li>
+<li>双击打开安装好的wireguard客户端<br><img src="/images/3-23/3-23-wg7.jpg" alt="3-23-wg7"></li>
+<li>点击从文件导入隧道即可建立wiregurad连接<br><img src="/images/3-23/3-23-wg8.jpg" alt="3-23-wg8"></li>
+</ul>
+<h3 id="centos客户端"><a href="#centos客户端" class="headerlink" title="centos客户端"></a>centos客户端</h3><ul>
+<li><ol>
+<li>下载必要软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># yum install epel-release https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm</span><br><span class="line"># yum install yum-plugin-elrepo</span><br><span class="line"># yum install kmod-wireguard wireguard-tools</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>从服务端下载client端的配置文件<code>xxxx.conf</code>，并将其改名为<code>wg0.conf</code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mv xxxx.conf /etc/wireguard/wg0.conf</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>通过服务的方式启动wireguard<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># systemctl daemon-reload</span><br><span class="line"># systemctl enable wg-quick@wg0 --now |systemctl reload wg-quick@wg0</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+<h2 id="安全加固"><a href="#安全加固" class="headerlink" title="安全加固"></a>安全加固</h2><ul>
+<li>配置除了内网ip外，其他ip无法访问<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"># cat docker-compose.yaml </span><br><span class="line">version: &#x27;3.6&#x27;</span><br><span class="line">services:</span><br><span class="line">  wg-gen-web:</span><br><span class="line">    image: vx3r/wg-gen-web:latest</span><br><span class="line">    container_name: wg-gen-web</span><br><span class="line">    restart: always</span><br><span class="line">    expose:</span><br><span class="line">      - &quot;8080/tcp&quot;</span><br><span class="line">    ports:</span><br><span class="line">      - 10.6.6.1:80:8080</span><br><span class="line">    environment:</span><br><span class="line">      - WG_CONF_DIR=/data</span><br><span class="line">      - WG_INTERFACE_NAME=wg0.conf</span><br><span class="line">      - OAUTH2_PROVIDER_NAME=fake</span><br><span class="line">      - WG_STATS_API=http://172.17.0.1:8182</span><br><span class="line">    volumes:</span><br><span class="line">      - /etc/wireguard:/data</span><br><span class="line">    network_mode: bridge</span><br><span class="line">  wg-json-api:</span><br><span class="line">    image: james/wg-api:latest</span><br><span class="line">    container_name: wg-json-api</span><br><span class="line">    restart: always</span><br><span class="line">    cap_add:</span><br><span class="line">      - NET_ADMIN</span><br><span class="line">    network_mode: &quot;host&quot;</span><br><span class="line">    command: wg-api --device wg0 --listen 172.17.0.1:8182</span><br></pre></td></tr></table></figure></li>
+<li>重新启动docker-compose<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># docker-compose stop</span><br><span class="line"># docker-compose up -d</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="鸣谢"><a href="#鸣谢" class="headerlink" title="鸣谢"></a>鸣谢</h2><p><a target="_blank" rel="noopener" href="https://blog.madebug.net/ops/2021-07-04-use-wireguard-to-rebuild-a-intranet-in-china">使用Wireguard基於國内網絡異地組網實踐</a><br><a target="_blank" rel="noopener" href="https://fuckcloudnative.io/posts/configure-wireguard-using-wg-gen-web/">WireGuard 配置教程：使用 wg-gen-web 来管理 WireGuard 的配置 – 云原生实验室 - Kubernetes|Docker|Istio|Envoy|Hugo|Golang|云原生</a></p>
+<p><strong><u><font color=red>仅用作经验记录</font></u></strong>    </p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/centos7/" rel="tag"># centos7</a>
+              <a href="/tags/wireguard/" rel="tag"># wireguard</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/03/23/power-require-psu/" rel="prev" title="power-require-psu">
+      <i class="fa fa-chevron-left"></i> power-require-psu
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/03/24/%E6%90%AD%E5%BB%BAhexo%E5%8D%9A%E5%AE%A2/" rel="next" title="搭建hexo博客">
+      搭建hexo博客 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9C%A8centos7%E9%85%8D%E7%BD%AEwireguard"><span class="nav-number">1.</span> <span class="nav-text">在centos7配置wireguard</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#wireguard-%E6%9C%8D%E5%8A%A1%E7%AB%AF%E9%85%8D%E7%BD%AE"><span class="nav-number">1.1.</span> <span class="nav-text">wireguard 服务端配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A0%E5%85%A5%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">1.2.</span> <span class="nav-text">加入客户端</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#windows%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">1.2.1.</span> <span class="nav-text">windows客户端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#centos%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">1.2.2.</span> <span class="nav-text">centos客户端</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E5%8A%A0%E5%9B%BA"><span class="nav-number">1.3.</span> <span class="nav-text">安全加固</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%B8%A3%E8%B0%A2"><span class="nav-number">1.4.</span> <span class="nav-text">鸣谢</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

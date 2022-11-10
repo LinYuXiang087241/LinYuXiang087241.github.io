@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="红帽 Ceph4 部署 使用 cockpit &#x2F; ceph-ansible 方式进行部署  **仅用作经验记录**">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cl260-ceph4部署">
+<meta property="og:url" content="http://example.com/2022/11/10/cl260-ceph4%E9%83%A8%E7%BD%B2/index.html">
+<meta property="og:site_name" content="ylin&#39;s blog">
+<meta property="og:description" content="红帽 Ceph4 部署 使用 cockpit &#x2F; ceph-ansible 方式进行部署  **仅用作经验记录**">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/22812/1.png">
+<meta property="og:image" content="http://example.com/images/221110/1.png">
+<meta property="og:image" content="http://example.com/images/221110/2.png">
+<meta property="og:image" content="http://example.com/images/221110/3.png">
+<meta property="og:image" content="http://example.com/images/221110/4.png">
+<meta property="og:image" content="http://example.com/images/221110/5.png">
+<meta property="og:image" content="http://example.com/images/221110/6.png">
+<meta property="og:image" content="http://example.com/images/221110/7.png">
+<meta property="og:image" content="http://example.com/images/221110/8.png">
+<meta property="article:published_time" content="2022-11-10T10:11:47.000Z">
+<meta property="article:modified_time" content="2022-11-10T15:17:15.928Z">
+<meta property="article:author" content="Yuxiang Lin">
+<meta property="article:tag" content="CL260_ceph">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/22812/1.png">
+
+<link rel="canonical" href="http://example.com/2022/11/10/cl260-ceph4%E9%83%A8%E7%BD%B2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>cl260-ceph4部署 | ylin's blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">ylin's blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/11/10/cl260-ceph4%E9%83%A8%E7%BD%B2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/lovelove.jpg">
+      <meta itemprop="name" content="Yuxiang Lin">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="ylin's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          cl260-ceph4部署
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-11-10 10:11:47 / 修改时间：15:17:15" itemprop="dateCreated datePublished" datetime="2022-11-10T10:11:47+00:00">2022-11-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/installation/" itemprop="url" rel="index"><span itemprop="name">installation</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/images/22812/1.png" alt="22-812-g1"></p>
+<html><pre><code> 红帽 Ceph4 部署
+使用 cockpit / ceph-ansible 方式进行部署 </code></pre></html>
+**<u><font color=red>仅用作经验记录</font></u>**
+<span id="more"></span>
+
+<hr>
+<h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h2><ul>
+<li><p>Ceph4 环境如下</p>
+<table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>IP</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>cepha.linuxone.in</td>
+<td>192.168.31.50</td>
+<td>_admin mon mgr</td>
+</tr>
+<tr>
+<td>cephb.linuxone.in</td>
+<td>192.168.31.51</td>
+<td>mon osd mgr</td>
+</tr>
+<tr>
+<td>cephc.linuxone.in</td>
+<td>192.168.31.52</td>
+<td>mon osd</td>
+</tr>
+<tr>
+<td>所有主机都有 sdb sdc sdd 三块硬盘用于创建 osd</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+<li><p>Ceph4 主机所需的 repo 如下</p>
+<ul>
+<li>RHEL 7:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rhel-7-server-rhceph-4-tools-rpms</span><br><span class="line">rhel-7-server-ansible-2.9-rpms</span><br><span class="line">rhel-7-server-rhceph-4-mon-rpms</span><br><span class="line">rhel-7-server-rhceph-4-osd-rpms</span><br></pre></td></tr></table></figure></li>
+<li>RHEL 8:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">rhceph-4-tools-for-rhel-8-x86_64-rpms</span><br><span class="line">ansible-2.9-for-rhel-8-x86_64-rpms</span><br><span class="line">rhceph-4-mon-for-rhel-8-x86_64-rpms</span><br><span class="line">rhceph-4-osd-for-rhel-8-x86_64-rpms</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p>Ceph4 使用容器化部署，需要下载的容器镜像为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">registry.redhat.io/rhceph/rhceph-4-rhel8:latest</span><br><span class="line">registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.6</span><br><span class="line">registry.redhat.io/rhceph/rhceph-4-dashboard-rhel8:latest</span><br><span class="line">registry.redhat.io/openshift4/ose-prometheus:v4.6</span><br><span class="line">registry.redhat.io/openshift4/ose-prometheus-alertmanager:v4.6</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>防火墙配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">  MON 配置</span><br><span class="line"># firewall-cmd --zone=public --add-port=3300/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=3300/tcp --permanent</span><br><span class="line"># firewall-cmd --zone=public --add-port=6789/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=6789/tcp --permanent</span><br><span class="line"># firewall-cmd --permanent --add-service=ceph-mon</span><br><span class="line"># firewall-cmd --add-service=ceph-mon</span><br><span class="line"></span><br><span class="line">  OSD 配置</span><br><span class="line"># firewall-cmd --zone=public --add-port=6800-7300/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=6800-7300/tcp --permanent</span><br><span class="line"># firewall-cmd --permanent --add-service=ceph</span><br><span class="line"># firewall-cmd --add-service=ceph</span><br><span class="line">  </span><br><span class="line">  RGW 配置</span><br><span class="line"># firewall-cmd --zone=public --add-port=8080/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=8080/tcp --permanent</span><br><span class="line"># firewall-cmd --zone=public --add-port=80/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=80/tcp --permanent</span><br><span class="line"># firewall-cmd --zone=public --add-port=443/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=443/tcp --permanent</span><br><span class="line"># firewall-cmd --zone=public --add-port=9090/tcp</span><br><span class="line"># firewall-cmd --zone=public --add-port=9090/tcp --permanent</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h2 id="使用-ceph-cockpit-安装集群"><a href="#使用-ceph-cockpit-安装集群" class="headerlink" title="使用 ceph-cockpit 安装集群"></a>使用 ceph-cockpit 安装集群</h2><ul>
+<li><ol>
+<li>安装 cockpit<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># dnf install cockpit -y</span><br><span class="line"># systemctl enable --now cockpit.socket</span><br><span class="line"># dnf install cockpit-ceph-installer</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>运行 ansible 以下容器<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># ansible-runner-service.sh -s</span><br><span class="line">最后的输出如下：</span><br><span class="line">The Ansible API container (runner-service) is available and responding to requests</span><br><span class="line"></span><br><span class="line">Login to the cockpit UI at https://cepha.linuxone.in:9090/cockpit-ceph-installer to start the install</span><br><span class="line">Linking the runner service inventory to ceph-ansible hosts</span><br><span class="line">- ansible hosts linked to runner-service inventory</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>将 Cockpit Ceph Installer SSH 密钥复制到集群中的所有节点<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-copy-id -f -i /usr/share/ansible-runner-service/env/ssh_key.pub root@cepha</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>完成 Cockpit Ceph Installer 的 Environment 页面<br><img src="/images/221110/1.png" alt="22-1110-g1"></li>
+</ol>
+<ul>
+<li>4.1  参考图中配置，基于 RPM 进行安装<br><img src="/images/221110/2.png" alt="22-1110-g2"></li>
+</ul>
+</li>
+<li><ol start="5">
+<li>完成 Cockpit Ceph Installer 的 Host 页面</li>
+</ol>
+<ul>
+<li>5.1 点击 <code>add host</code> 添加主机<br><img src="/images/221110/3.png" alt="22-1110-g3"></li>
+<li>5.2 添加主机<br><img src="/images/221110/4.png" alt="22-1110-g4"></li>
+<li>5.3 验证主机<br><img src="/images/221110/5.png" alt="22-1110-g5"></li>
+<li>5.4 配置网络<br><img src="/images/221110/6.png" alt="22-1110-g6"></li>
+<li>5.5 最后检查，点击 <code>save</code> 开始部署<br><img src="/images/221110/7.png" alt="22-1110-g7"></li>
+</ul>
+</li>
+<li><ol start="6">
+<li>部署完成后，点击 complete 出现集群信息<br><img src="/images/221110/8.png" alt="22-1110-g8"><br>部署完成后会是 warn 状态，禁用不安全模式：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># ceph config set mon auth_allow_insecure_global_id_reclaim false</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+<hr>
+<h2 id="使用-ceph-ansible-容器化部署-ceph-集群"><a href="#使用-ceph-ansible-容器化部署-ceph-集群" class="headerlink" title="使用 ceph-ansible 容器化部署 ceph 集群"></a>使用 ceph-ansible 容器化部署 ceph 集群</h2><ul>
+<li><ol>
+<li>安装 ceph-ansible 软件包<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># dnf install ceph-ansible </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>修改 group_vars&#x2F;all.yml 文件中的内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"># cat all.yml</span><br><span class="line">---</span><br><span class="line">dummy:</span><br><span class="line">ntp_service_enabled: true</span><br><span class="line">ceph_origin: repository</span><br><span class="line">ceph_repository: rhcs</span><br><span class="line">ceph_rhcs_version: 4</span><br><span class="line">ceph_iscsi_config_dev: false</span><br><span class="line">rbd_cache: &quot;true&quot;</span><br><span class="line">rbd_cache_writethrough_until_flush: &quot;false&quot;</span><br><span class="line">monitor_interface: ens33</span><br><span class="line">public_network: 192.168.31.0/24</span><br><span class="line">cluster_network: 192.168.31.0/24</span><br><span class="line">ceph_conf_overrides:</span><br><span class="line">  global:</span><br><span class="line">    mon_clock_drift_allowed: 0.5</span><br><span class="line">    mon_pg_warn_min_per_osd: 0</span><br><span class="line">ceph_docker_image: &quot;rhceph/rhceph-4-rhel8&quot;</span><br><span class="line">ceph_docker_image_tag: &quot;latest&quot;</span><br><span class="line">ceph_docker_registry: &quot;registry.redhat.io&quot;</span><br><span class="line">ceph_docker_registry_auth: true</span><br><span class="line">ceph_docker_registry_username: &lt;-- </span><br><span class="line">ceph_docker_registry_password: &lt;--</span><br><span class="line">containerized_deployment: True</span><br><span class="line">dashboard_admin_user: admin</span><br><span class="line">dashboard_admin_password: redhat</span><br><span class="line">node_exporter_container_image: registry.redhat.io/openshift4/ose-prometheus-node-exporter:v4.6</span><br><span class="line">grafana_admin_user: admin</span><br><span class="line">grafana_admin_password: redhat</span><br><span class="line">grafana_container_image: registry.redhat.io/rhceph/rhceph-4-dashboard-rhel8:4</span><br><span class="line">prometheus_container_image: registry.redhat.io/openshift4/ose-prometheus:v4.6</span><br><span class="line">alertmanager_container_image: registry.redhat.io/openshift4/ose-prometheus-alertmanager:v4.6</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>修改 group_vars&#x2F;osd.yml 中的内容<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">devices:</span><br><span class="line">  - /dev/sdb</span><br><span class="line">  - /dev/sdc</span><br><span class="line">  - /dev/sdd</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>编写 hosts 主机清单<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"># cat hosts </span><br><span class="line">[grafana-server]</span><br><span class="line">cepha.linuxone.in</span><br><span class="line"></span><br><span class="line">[mons]</span><br><span class="line">cepha.linuxone.in</span><br><span class="line">cephb.linuxone.in</span><br><span class="line">cephc.linuxone.in</span><br><span class="line"></span><br><span class="line">[mgrs]</span><br><span class="line">cepha.linuxone.in</span><br><span class="line">cephb.linuxone.in</span><br><span class="line">cephc.linuxone.in</span><br><span class="line"></span><br><span class="line">[osds]</span><br><span class="line">cepha.linuxone.in</span><br><span class="line">cephb.linuxone.in</span><br><span class="line">cephc.linuxone.in</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="5">
+<li>运行安装 playbook<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># cd /usr/share/ceph-ansible</span><br><span class="line"># ansible-playbook site-container.yml -i hosts</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="6">
+<li>开启 dashboard 的 ssl <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># ceph dashboard create-self-signed-cert</span><br><span class="line"># ceph config set mgr mgr/dashboard/ssl true</span><br><span class="line"># ceph mgr module disable dashboard</span><br><span class="line"># ceph mgr module enable dashboard</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="7">
+<li>在 cephb 和 cephc 节点上部署 RGW 网关</li>
+</ol>
+<ul>
+<li><p>7.1 修改 group_vars&#x2F;all.yml 文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">radosgw_interface: ens33</span><br><span class="line">client.rgw.cepha.rgw0:</span><br><span class="line">rgw_dns_name: cepha</span><br></pre></td></tr></table></figure></li>
+<li><p>7.2 编辑 group_vars&#x2F;rgws.yml 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># cp rgws.yml.sample rgws.yml</span><br><span class="line"># vim rgws.yml</span><br><span class="line">copy_admin_key: true</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>7.3 hosts 文件添加 rgw 节点 </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[rgws]</span><br><span class="line">cephb.linuxone.in</span><br><span class="line">cephc.linuxone.in</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>7.4 执行部署</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># ansible-playbook site-container.yml -i hosts --limit rgws</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="8">
+<li>部署 iscsi 网关</li>
+</ol>
+<ul>
+<li><p>8.1 编辑 all.yml ，添加以下调优</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">osd_client_watch_timeout : 15</span><br><span class="line">osd_heartbeat_grace : 20</span><br><span class="line">osd_heartbeat_interval : 5</span><br></pre></td></tr></table></figure>
+
+</li>
+<li><p>8.2 hosts中添加 iscsigws </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[iscsigws]</span><br><span class="line">cephb.linuxone.in</span><br><span class="line">cephc.linuxone.in</span><br></pre></td></tr></table></figure></li>
+<li><p>8.3 准备 iscsigws.yml 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># cp iscsigws.yml.sample iscsigws.yml</span><br></pre></td></tr></table></figure></li>
+<li><p>8.4 执行安装</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># $ ansible-playbook site-container.yml --limit iscsigws  -i hosts</span><br></pre></td></tr></table></figure></li>
+<li><p>8.5 起用 iscsi 网关</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># systemctl enable rbd-target-api --now</span><br><span class="line"># gwcli ls</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><ol start="9">
+<li>配置 cephfs</li>
+</ol>
+<ul>
+<li>9.1 hosts 中添加 mdss <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[mdss]</span><br><span class="line">cepha.linuxone.in</span><br></pre></td></tr></table></figure></li>
+<li>9.2 执行安装<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># ansible-playbook -i hosts site-container.yml --limit mdss</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="ceph-4-常用操作"><a href="#ceph-4-常用操作" class="headerlink" title="ceph 4 常用操作"></a>ceph 4 常用操作</h2><ul>
+<li><ol>
+<li>纠删码配置文件的操作<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">列出现有的配置文件</span><br><span class="line"># ceph osd erasure-code-profile ls</span><br><span class="line">查看现有配置文件的配置信息</span><br><span class="line"># ceph osd erasure-code-profile get</span><br><span class="line">移除现有的配置文件</span><br><span class="line"># ceph osd erasure-code-profile rm        </span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>操作和管理池<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">重命名池</span><br><span class="line"># ceph osd pool rename</span><br><span class="line">删除池  </span><br><span class="line"># ceph osd pool delete</span><br><span class="line">防止删除特定的池</span><br><span class="line"># ceph osd pool set pool_name nodelete true</span><br><span class="line">查看所以后的池以及池配置</span><br><span class="line"># ceph osd lspools </span><br><span class="line"># ceph osd pool ls detail</span><br><span class="line">设置配额</span><br><span class="line"># ceph osd pool set-quota</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>示例 创建一个 xxxpool 具有 64 个 PG，副本数为 3 ， rbd 类型， pg_auto_scaple 模式开启<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># ceph osd pool create xxxpool 64 64 replicated</span><br><span class="line"># ceph osd pool set xxxpool size 3</span><br><span class="line"># ceph osd pool application enable xxxpool rbd</span><br><span class="line"># ceph osd pool set xxxpool pg_autoscale_mode on</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="4">
+<li>ceph 获取 crushdump 并解译<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># ceph osd getcrushmap -o ./map.bin</span><br><span class="line"># crushtool -d ./map.bin -o ./map.txt</span><br></pre></td></tr></table></figure>
+  显示 crush 可调项<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># ceph osd crush show-tunables</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CL260-ceph/" rel="tag"># CL260_ceph</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/08/12/cl260-%E7%A6%BB%E7%BA%BF%E9%83%A8%E7%BD%B2ceph5/" rel="prev" title="cl260-离线部署ceph5">
+      <i class="fa fa-chevron-left"></i> cl260-离线部署ceph5
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/11/10/glusterfs-%E7%AE%A1%E7%90%86%E5%91%98%E5%85%A8%E8%AE%B0%E5%BD%95%EF%BC%88%E5%85%AD%EF%BC%89/" rel="next" title="glusterfs-管理员全记录：<font color=cyan>六</font>">
+      glusterfs-管理员全记录：<font color=cyan>六</font> <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">1.</span> <span class="nav-text">环境准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-ceph-cockpit-%E5%AE%89%E8%A3%85%E9%9B%86%E7%BE%A4"><span class="nav-number">2.</span> <span class="nav-text">使用 ceph-cockpit 安装集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-ceph-ansible-%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2-ceph-%E9%9B%86%E7%BE%A4"><span class="nav-number">3.</span> <span class="nav-text">使用 ceph-ansible 容器化部署 ceph 集群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ceph-4-%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C"><span class="nav-number">4.</span> <span class="nav-text">ceph 4 常用操作</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Yuxiang Lin"
+      src="/images/lovelove.jpg">
+  <p class="site-author-name" itemprop="name">Yuxiang Lin</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/LinYuXiang087241" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;LinYuXiang087241" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:lyuxiang76@gmail.com" title="E-Mail → mailto:lyuxiang76@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Yuxiang Lin</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
